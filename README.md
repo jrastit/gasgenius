@@ -1,2 +1,2 @@
 # gasgenius
-Gas price prediction for blockchain
+State of the art Gas price prediction for blockchain
