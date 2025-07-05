@@ -26,7 +26,7 @@ export default async function handler(
     if (data.status !== '1')
       return res
         .status(400)
-        .json({ error: data.result })
+        .json({ error: data.result})
     const result = data.result[0]
     const abi = JSON.parse(result.ABI)
     const contractName = result.ContractName || 'Contract'
