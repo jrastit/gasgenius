@@ -4,8 +4,8 @@ const express = require('express');
 const { Pool } = require('pg');
 
 // Configuration
-const INFURA_URL = process.env.INFURA_URL; // e.g. Infura project endpoint
-
+const app = express();
+const PORT = process.env.PORT || 3000;
 const {
   ETHERSCAN_API_KEY,
   POSTGRES_USER,
@@ -53,9 +53,11 @@ async function getBlockData(blockNumber) {
       return null;
     }
 
-    // const gasPrices = block.transactions.map(tx => parseInt(tx.gasPrice));
-    // const avgGasWei = gasPrices.reduce((a, b) => a + b, 0) / gasPrices.length;
-    const gasPrices = block.transactions.map(tx => tx.gasPrice ? BigInt(tx.gasPrice) : BigInt(0));
+    const gasPrices = block.transactions.map(tx => tx.gasPrice ? BigInt(tx.gasPrice) : null)
+    .filter(price => price !== null);
+
+    if (validPrices.length === 0) return null;
+    
     gasPrices.sort((a, b) => (a < b ? -1 : 1));
     const idx = p => Math.floor((gasPrices.length - 1) * p);
 
@@ -64,8 +66,6 @@ async function getBlockData(blockNumber) {
       lowGas:  Number(gasPrices[idx(0.25)]) / 1e9,
       mediumGas:  Number(gasPrices[idx(0.5)]) / 1e9,
       highGas: Number(gasPrices[idx(0.75)]) / 1e9,
-      // avgGwei: avgGasWei / 1e9,
-
       timestamp: parseInt(block.timestamp, 16),
     };  
 
@@ -93,29 +93,6 @@ async function saveBlockGasData(data) {
   }
 }
 
-async function fetchAndSaveRecentBlocks(count = 5000) {
-  // Get latest block number from Etherscan
-  try {
-    const { data } = await axios.get(`https://api.etherscan.io/api?module=proxy&action=eth_blockNumber&apikey=${ETHERSCAN_API_KEY}`);
-    const latestBlockHex = data.result;
-    const latestBlock = parseInt(latestBlockHex, 16);
-
-    console.log(`Latest block: ${latestBlock}`);
-    console.log(`Fetching last ${count} blocks...`);
-
-    for (let i = 0; i < count; i++) {
-      const block = latestBlock - i;
-      const data = await getBlockData(block);
-      await saveBlockGasData(data);
-
-      // Respect Etherscan free rate limit (5 req/sec)
-      await delay(250);
-    }
-  } catch (err) {
-    console.error('Error fetching latest block:', err.message);
-  }
-}
-
 async function getMaxStoredBlock() {
   const client = await pool.connect();
   try {
@@ -128,40 +105,42 @@ async function getMaxStoredBlock() {
 
 async function fetchAndSaveNewBlocks() {
   try {
+    // Récupère le dernier bloc actuel sur Ethereum
     const { data } = await axios.get(`https://api.etherscan.io/api?module=proxy&action=eth_blockNumber&apikey=${ETHERSCAN_API_KEY}`);
     const latestBlockHex = data.result;
     const latestBlock = parseInt(latestBlockHex, 16);
 
+    // Récupère le dernier bloc déjà sauvegardé dans la DB
     const maxStoredBlock = await getMaxStoredBlock();
 
-    // Détermine à partir de quel bloc commencer la récupération
-    const startBlock = maxStoredBlock !== null ? maxStoredBlock + 1 : latestBlock - 5000;
+    if (latestBlock <= maxStoredBlock) {
+      console.log(`Aucun nouveau bloc à ajouter. Dernier bloc stocké : ${maxStoredBlock}, bloc actuel : ${latestBlock}`);
+      return;
+    }
 
-    console.log(`Latest block: ${latestBlock}`);
-    console.log(`Starting from block: ${startBlock}`);
+    // if no block save then store the last 5000
+    const safeStartBlock = Math.max(0, latestBlock - 5000);
+    const startBlock = maxStoredBlock !== null ? maxStoredBlock + 1 : safeStartBlock;
+
+    console.log(`📥 Récupération des blocs depuis ${startBlock} jusqu'à ${latestBlock}`);
 
     for (let block = startBlock; block <= latestBlock; block++) {
       const data = await getBlockData(block);
       await saveBlockGasData(data);
-
-      // Respect rate limit etherscan
       await delay(250);
     }
+
+    console.log(`✅ Blocs ${startBlock} à ${latestBlock} sauvegardés.`);
+
   } catch (err) {
-    console.error('Error fetching blocks:', err.message);
+    console.error('❌ Erreur dans fetchAndSaveNewBlocks:', err.message);
   }
 }
-
-
-// Express setup
-const app = express();
-const PORT = process.env.PORT || 3000;
 
 app.get('/gas-history', async (req, res) => {
   try {
     const client = await pool.connect();
 
-    // Optional: add query params to filter, paginate, etc.
     const { limit = 20 } = req.query;
 
     const result = await client.query(
@@ -178,13 +157,37 @@ app.get('/gas-history', async (req, res) => {
   }
 });
 
+app.post('/sync-blocks', async (req, res) => {
+  try {
+    await fetchAndSaveNewBlocks();
+    res.json({ status: 'OK' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+async function runBackgroundUpdater() {
+  console.log("🔄 Lancement de la mise à jour continue des blocs...");
+
+  while (true) {
+    try {
+      await fetchAndSaveNewBlocks();
+    } catch (err) {
+      console.error("❌ Erreur dans la mise à jour des blocs :", err.message);
+    }
+
+    // Attente avant la prochaine mise à jour : ici toutes les 30 secondes
+    await delay(30000);
+  }
+}
+
 async function start() {
   await setup();
-  // await fetchAndSaveRecentBlocks();
   await fetchAndSaveNewBlocks();
   app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
   });
+  runBackgroundUpdater();
 }
 
 start();
