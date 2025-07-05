@@ -1,0 +1,337 @@
+{
+  "$schema": "https://eips.ethereum.org/assets/eip-7730/erc7730-v1.schema.json",
+  "context": {
+    "$id": "OneInch",
+    "contract": {
+      "abi": "https://api.etherscan.io/api?module=contract&action=getabi&address=0x111111111117dC0aa78b770fA6A738034120C302",
+      "deployments": [
+        {
+          "chainId": 1,
+          "address": "0x111111111117dC0aa78b770fA6A738034120C302"
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "owner": "OneInch"
+  },
+  "display": {
+    "formats": {
+      "DOMAIN_SEPARATOR()": {
+        "intent": "Call",
+        "fields": [],
+        "required": [],
+        "excluded": []
+      },
+      "allowance(address,address)": {
+        "intent": "Call",
+        "fields": [
+          {
+            "path": "owner",
+            "label": "Owner",
+            "format": "addressOrName"
+          },
+          {
+            "path": "spender",
+            "label": "Spender",
+            "format": "addressOrName"
+          }
+        ],
+        "required": [
+          "owner",
+          "spender"
+        ],
+        "excluded": []
+      },
+      "approve(address,uint256)": {
+        "intent": "Approve",
+        "fields": [
+          {
+            "path": "spender",
+            "label": "Spender",
+            "format": "addressOrName"
+          },
+          {
+            "path": "amount",
+            "label": "Amount",
+            "format": "raw"
+          }
+        ],
+        "required": [
+          "spender",
+          "amount"
+        ],
+        "excluded": []
+      },
+      "balanceOf(address)": {
+        "intent": "Call",
+        "fields": [
+          {
+            "path": "account",
+            "label": "Account",
+            "format": "addressOrName"
+          }
+        ],
+        "required": [
+          "account"
+        ],
+        "excluded": []
+      },
+      "burn(uint256)": {
+        "intent": "Call",
+        "fields": [
+          {
+            "path": "amount",
+            "label": "Amount",
+            "format": "raw"
+          }
+        ],
+        "required": [
+          "amount"
+        ],
+        "excluded": []
+      },
+      "burnFrom(address,uint256)": {
+        "intent": "Call",
+        "fields": [
+          {
+            "path": "account",
+            "label": "Account",
+            "format": "addressOrName"
+          },
+          {
+            "path": "amount",
+            "label": "Amount",
+            "format": "raw"
+          }
+        ],
+        "required": [
+          "account",
+          "amount"
+        ],
+        "excluded": []
+      },
+      "decimals()": {
+        "intent": "Call",
+        "fields": [],
+        "required": [],
+        "excluded": []
+      },
+      "decreaseAllowance(address,uint256)": {
+        "intent": "Call",
+        "fields": [
+          {
+            "path": "spender",
+            "label": "Spender",
+            "format": "addressOrName"
+          },
+          {
+            "path": "subtractedValue",
+            "label": "Subtracted Value",
+            "format": "raw"
+          }
+        ],
+        "required": [
+          "spender",
+          "subtractedValue"
+        ],
+        "excluded": []
+      },
+      "increaseAllowance(address,uint256)": {
+        "intent": "Call",
+        "fields": [
+          {
+            "path": "spender",
+            "label": "Spender",
+            "format": "addressOrName"
+          },
+          {
+            "path": "addedValue",
+            "label": "Added Value",
+            "format": "raw"
+          }
+        ],
+        "required": [
+          "spender",
+          "addedValue"
+        ],
+        "excluded": []
+      },
+      "mint(address,uint256)": {
+        "intent": "Call",
+        "fields": [
+          {
+            "path": "to",
+            "label": "To",
+            "format": "addressOrName"
+          },
+          {
+            "path": "amount",
+            "label": "Amount",
+            "format": "raw"
+          }
+        ],
+        "required": [
+          "to",
+          "amount"
+        ],
+        "excluded": []
+      },
+      "name()": {
+        "intent": "Call",
+        "fields": [],
+        "required": [],
+        "excluded": []
+      },
+      "nonces(address)": {
+        "intent": "Call",
+        "fields": [
+          {
+            "path": "owner",
+            "label": "Owner",
+            "format": "addressOrName"
+          }
+        ],
+        "required": [
+          "owner"
+        ],
+        "excluded": []
+      },
+      "owner()": {
+        "intent": "Call",
+        "fields": [],
+        "required": [],
+        "excluded": []
+      },
+      "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)": {
+        "intent": "Call",
+        "fields": [
+          {
+            "path": "owner",
+            "label": "Owner",
+            "format": "addressOrName"
+          },
+          {
+            "path": "spender",
+            "label": "Spender",
+            "format": "addressOrName"
+          },
+          {
+            "path": "value",
+            "label": "Value",
+            "format": "raw"
+          },
+          {
+            "path": "deadline",
+            "label": "Deadline",
+            "format": "raw"
+          },
+          {
+            "path": "v",
+            "label": "V",
+            "format": "raw"
+          },
+          {
+            "path": "r",
+            "label": "R",
+            "format": "raw"
+          },
+          {
+            "path": "s",
+            "label": "S",
+            "format": "raw"
+          }
+        ],
+        "required": [
+          "owner",
+          "spender",
+          "value",
+          "deadline",
+          "v",
+          "r",
+          "s"
+        ],
+        "excluded": []
+      },
+      "renounceOwnership()": {
+        "intent": "Call",
+        "fields": [],
+        "required": [],
+        "excluded": []
+      },
+      "symbol()": {
+        "intent": "Call",
+        "fields": [],
+        "required": [],
+        "excluded": []
+      },
+      "totalSupply()": {
+        "intent": "Call",
+        "fields": [],
+        "required": [],
+        "excluded": []
+      },
+      "transfer(address,uint256)": {
+        "intent": "Send",
+        "fields": [
+          {
+            "path": "recipient",
+            "label": "Recipient",
+            "format": "addressOrName"
+          },
+          {
+            "path": "amount",
+            "label": "Amount",
+            "format": "raw"
+          }
+        ],
+        "required": [
+          "recipient",
+          "amount"
+        ],
+        "excluded": []
+      },
+      "transferFrom(address,address,uint256)": {
+        "intent": "Call",
+        "fields": [
+          {
+            "path": "sender",
+            "label": "Sender",
+            "format": "addressOrName"
+          },
+          {
+            "path": "recipient",
+            "label": "Recipient",
+            "format": "addressOrName"
+          },
+          {
+            "path": "amount",
+            "label": "Amount",
+            "format": "raw"
+          }
+        ],
+        "required": [
+          "sender",
+          "recipient",
+          "amount"
+        ],
+        "excluded": []
+      },
+      "transferOwnership(address)": {
+        "intent": "Call",
+        "fields": [
+          {
+            "path": "newOwner",
+            "label": "New Owner",
+            "format": "addressOrName"
+          }
+        ],
+        "required": [
+          "newOwner"
+        ],
+        "excluded": []
+      }
+    }
+  }
+}
+
