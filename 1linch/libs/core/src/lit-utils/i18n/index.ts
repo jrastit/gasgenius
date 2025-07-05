@@ -1,5 +1,0 @@
-export * from './directives'
-export * from './i18n'
-export * from './i18n-controller'
-export * from './i18n-embedded-controller'
-export * from './locale'
