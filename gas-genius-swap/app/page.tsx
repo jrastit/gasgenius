@@ -137,14 +137,8 @@ useEffect(() => {
 
 // ✅ Token balance fetch logic — defined separately
 useEffect(() => {
-  if (
-    !connected ||
-    !walletAddress ||
-    !fromToken ||
-    !debouncedAmount ||
-    isNaN(Number(debouncedAmount)) ||
-    Number(debouncedAmount) <= 0
-  ) return;
+  if (!connected || !walletAddress || !fromToken) return;
+
 
   const fetchBalance = async () => {
     try {
@@ -156,7 +150,7 @@ useEffect(() => {
   };
 
   fetchBalance();
-}, [connected, walletAddress, fromToken, debouncedAmount]);
+}, [connected, walletAddress, fromToken]);
 
 
 
@@ -259,9 +253,15 @@ const handleConnect = async () => {
              [&::-webkit-outer-spin-button]:appearance-none 
              [-moz-appearance:textfield]"
 />
-<p className="text-xs text-gray-500 mt-1 text-right">
-  {tokenBalance ? `${formatUnits(tokenBalance, tokenMeta[fromToken].decimals)} ${tokenMeta[fromToken].symbol}` : '--'}
-</p>
+{connected && (
+  <p className="text-xs text-gray-500 mt-1 text-right">
+    {tokenBalance !== null
+      ? `${formatUnits(tokenBalance || 0, tokenMeta[fromToken].decimals)} ${tokenMeta[fromToken].symbol}`
+      : ''}
+  </p>
+)}
+
+
 
 
           </div>
