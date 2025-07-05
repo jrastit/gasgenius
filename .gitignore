@@ -1,0 +1,56 @@
+# See http://help.github.com/ignore-files/ for more about ignoring files.
+
+# cache
+/apps/dapp/cache/
+/apps/dapp/node_modules/
+
+# compiled output
+dist
+out
+dev-cert
+dev-dist
+tmp
+/out-tsc
+temp
+apps/dapp/cache
+
+# dependencies
+node_modules
+
+# IDEs and editors
+/.idea
+.fleet
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.iml
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# misc
+/.sass-cache
+/connect.lock
+/coverage
+/libpeerconnection.log
+npm-debug.log
+yarn-error.log
+testem.log
+/typings
+
+# System Files
+.DS_Store
+Thumbs.db
+.env
+tsconfig.tsbuildinfo
+
+
+# Sentry Config File
+.env.sentry-build-plugin
