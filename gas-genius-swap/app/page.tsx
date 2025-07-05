@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getQuote } from '../utils/oneInchApi';
 import { parseUnits, formatUnits } from 'ethers';
 import { useDebounce } from '../hooks/useDebounce';
+import { getQuote, getTokenBalance } from '../utils/oneInchApi';
 
 const tokenMeta = {
   ETH: {
@@ -39,15 +39,44 @@ export default function SwapPage() {
   const [loadingQuote, setLoadingQuote] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
   const [showWalletMenu, setShowWalletMenu] = useState(false);
+  const [tokenBalance, setTokenBalance] = useState(null);
+  const isInvalidAmount = !debouncedAmount || isNaN(Number(debouncedAmount)) || Number(debouncedAmount) <= 0;
   const handleDisconnect = () => {
     setConnected(false);
     setWalletAddress('');
     localStorage.setItem('disconnected', 'true');
     setShowWalletMenu(false);
   };
+  const amountWei = debouncedAmount
+  ? parseUnits(debouncedAmount, tokenMeta[fromToken].decimals)
+  : null;
+
+  useEffect(() => {
+    if (typeof window.ethereum === 'undefined') return;
   
-
-
+    const handleAccountsChanged = (accounts) => {
+      if (accounts.length === 0) {
+        // 🛑 MetaMask disconnected manually
+        setConnected(false);
+        setWalletAddress('');
+        localStorage.setItem('disconnected', 'true');
+      } else {
+        // ✅ MetaMask account changed or connected
+        setConnected(true);
+        setWalletAddress(accounts[0]);
+        localStorage.removeItem('disconnected');
+      }
+    };
+  
+    window.ethereum.on('accountsChanged', handleAccountsChanged);
+  
+    return () => {
+      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+    };
+  }, []);
+  
+const hasEnoughFunds =
+  tokenBalance && amountWei && BigInt(tokenBalance) >= BigInt(amountWei);
   useEffect(() => {
     const wasDisconnected = localStorage.getItem('disconnected') === 'true';
     if (wasDisconnected) return;
@@ -61,67 +90,75 @@ export default function SwapPage() {
             setWalletAddress(accounts[0]);
           }
         })
-        .catch(console.error);
+        .catch((err) => {
+          console.error('Auto-connect error:', err);
+        });
     }
   }, []);
   
-    
-
-useEffect(() => {
-  if (typeof window.ethereum === 'undefined') return;
-
-  const handleAccountsChanged = (accounts) => {
-    if (accounts.length > 0) {
-      setConnected(true);
-      setWalletAddress(accounts[0]);
-    } else {
-      setConnected(false);
-      setWalletAddress('');
-    }
-  };
-
-  window.ethereum.on('accountsChanged', handleAccountsChanged);
-
-  return () => {
-    window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-  };
-}, []);
-
+  
+// ✅ Quote fetch logic
 useEffect(() => {
   if (!debouncedAmount || isNaN(Number(debouncedAmount)) || Number(debouncedAmount) <= 0) {
     setQuote(null);
     setLoadingQuote(false);
     return;
   }
-const fetchQuote = async () => {
-  setLoadingQuote(true);
-  const amountWei = parseUnits(debouncedAmount, tokenMeta[fromToken].decimals).toString();
 
-  try {
-    const quoteData = await getQuote(
-      tokenMeta[fromToken].address,
-      tokenMeta[toToken].address,
-      amountWei
-    );
+  const fetchQuote = async () => {
+    setLoadingQuote(true);
+    const amountWei = parseUnits(debouncedAmount, tokenMeta[fromToken].decimals).toString();
 
-    const rawAmount = quoteData.toAmount ?? quoteData.toTokenAmount;
-    if (!rawAmount) {
+    try {
+      const quoteData = await getQuote(
+        tokenMeta[fromToken].address,
+        tokenMeta[toToken].address,
+        amountWei
+      );
+
+      const rawAmount = quoteData.toAmount ?? quoteData.toTokenAmount;
+      if (!rawAmount) {
+        setQuote(null);
+        return;
+      }
+
+      const output = formatUnits(rawAmount, tokenMeta[toToken].decimals);
+      setQuote(output);
+    } catch (err) {
+      console.error('Quote error:', err);
       setQuote(null);
-      return;
+    } finally {
+      setLoadingQuote(false);
     }
+  };
 
-    const output = formatUnits(rawAmount, tokenMeta[toToken].decimals);
-    setQuote(output);
-  } catch (err) {
-    console.error('Quote error:', err);
-    setQuote(null);
-  } finally {
-    setLoadingQuote(false);
-  }
-};
-
-fetchQuote();
+  fetchQuote();
 }, [fromToken, toToken, debouncedAmount]);
+
+// ✅ Token balance fetch logic — defined separately
+useEffect(() => {
+  if (
+    !connected ||
+    !walletAddress ||
+    !fromToken ||
+    !debouncedAmount ||
+    isNaN(Number(debouncedAmount)) ||
+    Number(debouncedAmount) <= 0
+  ) return;
+
+  const fetchBalance = async () => {
+    try {
+      const balance = await getTokenBalance(walletAddress, tokenMeta[fromToken].address);
+      setTokenBalance(balance);
+    } catch (err) {
+      console.error('Error fetching token balance:', err);
+    }
+  };
+
+  fetchBalance();
+}, [connected, walletAddress, fromToken, debouncedAmount]);
+
+
 
 const handleConnect = async () => {
   try {
@@ -222,6 +259,10 @@ const handleConnect = async () => {
              [&::-webkit-outer-spin-button]:appearance-none 
              [-moz-appearance:textfield]"
 />
+<p className="text-xs text-gray-500 mt-1 text-right">
+  {tokenBalance ? `${formatUnits(tokenBalance, tokenMeta[fromToken].decimals)} ${tokenMeta[fromToken].symbol}` : '--'}
+</p>
+
 
           </div>
         </div>
@@ -271,27 +312,37 @@ const handleConnect = async () => {
         </div>
         <button
   className={`w-full py-2 rounded-xl font-semibold transition-all text-white ${
-    !connected || (connected && quote && !loadingQuote)
+    !connected
+      ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:opacity-90'
+      : quote && !loadingQuote && hasEnoughFunds
       ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:opacity-90'
       : 'bg-gray-600 cursor-not-allowed'
   }`}
   onClick={() => {
     if (!connected) {
-      console.log('Connecting wallet...');
       handleConnect();
-    } else if (quote && !loadingQuote) {
-      console.log('Swapping...');
+    } else if (quote && !loadingQuote && hasEnoughFunds && !isInvalidAmount) {
       handleSwap();
     }
   }}
-  disabled={connected && (!quote || loadingQuote)}
+  disabled={
+    connected &&
+    (!quote || loadingQuote || isInvalidAmount || !hasEnoughFunds)
+  }
 >
-  {!connected
-    ? 'Connect Wallet'
-    : loadingQuote
-    ? 'Loading...'
-    : 'Swap'}
+{!connected
+  ? 'Connect Wallet'
+  : loadingQuote
+  ? 'Loading...'
+  : isInvalidAmount
+  ? 'Enter an amount to swap'
+  : !hasEnoughFunds
+  ? 'Insufficient Balance'
+  : 'Swap'}
+
 </button>
+
+
 
 
       </div>
