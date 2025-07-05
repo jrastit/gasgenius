@@ -1,0 +1,120 @@
+{
+  "name": "@1inch-community/core",
+  "version": "1.0.0-rc.29",
+  "license": "MIT",
+  "homepage": "https://github.com/1inch-community/interface",
+  "private": false,
+  "author": {
+    "name": "Denis Kotsyuba",
+    "email": "kocubads96@gmail.com",
+    "url": "https://www.linkedin.com/in/denis-k-03a09419b/"
+  },
+  "bugs": {
+    "url": "https://github.com/1inch-community/interface/issues",
+    "email": "kocubads96@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/1inch-community/interface.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/",
+    "access": "public"
+  },
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -b -w",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "peerDependencies": {
+    "@1inch-community/models": "workspace:*"
+  },
+  "dependencies": {
+    "@lit/context": "^1.1.4",
+    "@sentry/browser": "^9.5.0",
+    "dexie": "^4.0.11",
+    "lit": "^3.2.1",
+    "rxjs": "^7.8.2",
+    "tslib": "^2.8.1",
+    "viem": "^2.28.0"
+  },
+  "exports": {
+    "./animations": {
+      "types": "./dist/animations/index.d.ts",
+      "import": "./dist/animations/index.js"
+    },
+    "./application-context": {
+      "types": "./dist/application-context/index.d.ts",
+      "import": "./dist/application-context/index.js"
+    },
+    "./async": {
+      "types": "./dist/async/index.d.ts",
+      "import": "./dist/async/index.js"
+    },
+    "./cache": {
+      "types": "./dist/cache/index.d.ts",
+      "import": "./dist/cache/index.js"
+    },
+    "./database": {
+      "types": "./dist/database/index.d.ts",
+      "import": "./dist/database/index.js"
+    },
+    "./decorators": {
+      "types": "./dist/decorators/index.d.ts",
+      "import": "./dist/decorators/index.js"
+    },
+    "./environment": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js"
+    },
+    "./formatters": {
+      "types": "./dist/formatters/index.d.ts",
+      "import": "./dist/formatters/index.js"
+    },
+    "./lazy": {
+      "types": "./dist/lazy/index.d.ts",
+      "import": "./dist/lazy/index.js"
+    },
+    "./lit-utils": {
+      "types": "./dist/lit-utils/index.d.ts",
+      "import": "./dist/lit-utils/index.js"
+    },
+    "./math": {
+      "types": "./dist/math/index.d.ts",
+      "import": "./dist/math/index.js"
+    },
+    "./random": {
+      "types": "./dist/random/index.d.ts",
+      "import": "./dist/random/index.js"
+    },
+    "./sentry": {
+      "types": "./dist/sentry/index.d.ts",
+      "import": "./dist/sentry/index.js"
+    },
+    "./settings": {
+      "types": "./dist/settings/index.d.ts",
+      "import": "./dist/settings/index.js"
+    },
+    "./storage": {
+      "types": "./dist/storage/index.d.ts",
+      "import": "./dist/storage/index.js"
+    },
+    "./theme": {
+      "types": "./dist/theme/index.d.ts",
+      "import": "./dist/theme/index.js"
+    },
+    "./turnstile": {
+      "types": "./dist/turnstile/index.d.ts",
+      "import": "./dist/turnstile/index.js"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.js"
+    }
+  }
+}

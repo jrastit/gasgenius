@@ -1,0 +1,79 @@
+{
+  "name": "1inch-community",
+  "version": "1.0.0-rc.29",
+  "license": "MIT",
+  "homepage": "https://github.com/1inch-community/interface",
+  "author": {
+    "name": "Denis Kotsyuba",
+    "email": "kocubads96@gmail.com",
+    "url": "https://www.linkedin.com/in/denis-k-03a09419b/"
+  },
+  "bugs": {
+    "url": "https://github.com/1inch-community/interface/issues",
+    "email": "kocubads96@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/1inch-community/interface.git"
+  },
+  "scripts": {
+    "start": "pnpm run build:libs:all && pnpm run serve:dapp",
+    "serve:dapp": "pnpm --filter \"./apps/dapp\" run dev",
+    "build:dapp": "pnpm --filter \"./apps/dapp\" run build",
+    "build:libs:all": "pnpm --filter \"./libs/*\" run build",
+    "publish:libs:all": "pnpm --filter \"./libs/*\" publish --no-git-checks",
+    "watch:libs:all": "pnpm run build:libs:all && pnpm --filter \"./libs/*\" --parallel run watch",
+    "clear:all:node_modules": "find . -type d -name node_modules -exec rm -rf {} +",
+    "clear:all:dist": "find . -type d -name dist -exec rm -rf {} +",
+    "clear:all:tsbuildinfo": "find . -type f -name 'tsconfig.tsbuildinfo' -exec rm -f {} +",
+    "clear:all:lock": "find . -type f -name 'pnpm-lock.yaml' -exec rm -f {} +",
+    "clear:all": "pnpm run clear:all:node_modules && pnpm run clear:all:dist && pnpm run clear:all:tsbuildinfo",
+    "reset": "pnpm run clear:all && pnpm install",
+    "postinstall": "pnpm run build:libs:all",
+    "update-version": "ts-node --project ./scripts/tsconfig.json ./scripts/update-version.ts",
+    "// Code Style and Tests": "",
+    "prettier:check": "prettier -c .",
+    "prettier:write": "prettier -w .",
+    "test": "pnpm -r run test",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --fix --ext .ts",
+    "update-rpc": "jiti scripts/rpc-updater.mts",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.22.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^7.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^11.0.1",
+    "@types/node": "^22.13.10",
+    "@typescript-eslint/eslint-plugin": "^8.26.1",
+    "@typescript-eslint/parser": "^8.26.1",
+    "@vitest/coverage-v8": "^3.0.8",
+    "dotenv": "^16.4.7",
+    "eslint": "^9.22.0",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-prettier": "^5.2.3",
+    "husky": "^9.1.7",
+    "jiti": "^2.4.2",
+    "prettier": "^3.5.3",
+    "prettier-plugin-organize-imports": "^4.1.0",
+    "semantic-release": "^24.2.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.26.1",
+    "viem": "^2.28.0",
+    "vite": "^6.3.5",
+    "vite-plugin-dts": "^4.5.3",
+    "vite-plugin-html": "^3.2.2",
+    "vite-plugin-ngrok": "^1.1.2",
+    "vite-plugin-preload": "^0.4.2",
+    "vite-plugin-pwa": "^0.21.1",
+    "vitest": "^3.0.8"
+  },
+  "engines": {
+    "node": ">=23",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@10.6.0"
+}

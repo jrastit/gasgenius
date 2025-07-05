@@ -1,0 +1,21 @@
+{
+  "name": "helpers",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test",
+    "test:debug": "forge test -vvv",
+    "deploy:simulate": "dotenv -e .env forge script script/BalanceHelper.s.sol --fork-url $ETHEREUM_RPC",
+    "deploy:1": "dotenv -e .env -- sh -c 'forge script script/BalanceHelper.s.sol --rpc-url $ETHEREUM_RPC --private-key $PR_KEY --broadcast'",
+    "deploy:137": "dotenv -e .env -- sh -c 'forge script script/BalanceHelper.s.sol --rpc-url $POLYGON_RPC --private-key $PR_KEY --broadcast'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/1inch-community/interface.git"
+  },
+  "devDependencies": {
+    "dotenv-cli": "8.0.0"
+  },
+  "private": true
+}

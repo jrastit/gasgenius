@@ -1,0 +1,76 @@
+appId: io.1inch-community.dapp
+productName: 1inch Community dApp
+icon: resources/icon
+
+directories:
+  buildResources: build
+
+files:
+  - 'out/**'
+  - 'package.json'
+
+# ASAR
+asar: true
+asarUnpack:
+  - 'out/preload.mjs'
+
+extraResources:
+  - from: resources/
+    to: resources/
+    filter:
+      - '**/*'
+
+extraMetadata:
+  main: out/main.mjs
+
+# Windows
+win:
+  executableName: 1inch community dApp
+  icon: resources/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - arm64
+
+nsis:
+  oneClick: false
+  artifactName: 1inch-community-dApp-${arch}-setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+
+# macOS
+mac:
+  category: public.app-category.finance
+  entitlementsInherit: build/entitlements.mac.plist
+  entitlements: build/entitlements.mac.plist
+  icon: resources/icon.icns
+  hardenedRuntime: true
+  notarize: false
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+
+dmg:
+  artifactName: 1inch-community-dApp-${arch}.${ext}
+
+# Linux
+linux:
+  icon: resources/icon.png
+  artifactName: 1inch-community-dApp-${arch}.${ext}
+  target:
+    - target: AppImage
+      arch:
+        - x64
+        - arm64
+
+npmRebuild: false
+
+publish:
+  provider: github
+  owner: DKotsyuba
+  repo: 1inch-community/interface
+  releaseType: draft

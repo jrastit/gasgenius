@@ -1,0 +1,29 @@
+{
+  "name": "@1inch-community/electron-dapp",
+  "version": "1.0.0-rc.29",
+  "description": "",
+  "main": "out/main.mjs",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm run build && electron .",
+    "build": "tsc",
+    "build:electron": "electron-builder -c ./electron-builder.yml build -mwl --publish never",
+    "release": "pnpm run build && pnpm run build:electron"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "@electron-toolkit/utils": "^4.0.0",
+    "@electron-toolkit/preload": "^3.0.0",
+    "electron-log": "^5.3.2",
+    "electron-settings": "^4.0.4",
+    "electron-updater": "^6.3.9",
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@electron-toolkit/tsconfig": "^1.0.1",
+    "@electron/notarize": "^2.5.0",
+    "dmg-license": "^1.0.11",
+    "electron": "^35.0.1",
+    "electron-builder": "^25.1.8"
+  }
+}
