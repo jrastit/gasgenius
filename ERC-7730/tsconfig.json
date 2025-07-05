@@ -17,15 +17,27 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve"
+    "jsx": "preserve",
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",              // ① root of the repo
+    "paths": {                   // ② map alias → folder(s)
+      "@/*": ["src/*"]           //   if your code now lives under /src
+    //          
+    },
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "lib"
+    "lib",
+    ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
-  ]
+  ],
+  
 }
