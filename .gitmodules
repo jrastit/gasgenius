@@ -1,0 +1,3 @@
+[submodule "clear-signing-erc7730-registry"]
+	path = clear-signing-erc7730-registry
+	url = git@github.com:jrastit/clear-signing-erc7730-registry.git

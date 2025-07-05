@@ -1,5 +1,0 @@
-export * from './auction/swap-option-item-auction.element'
-export * from './min-receive/swap-option-item-min-receive.element'
-export * from './network-fee/swap-option-item-network-fee.element'
-export * from './rate/swap-option-item-rate.element'
-export * from './slippage/swap-option-item-slippage.element'
