@@ -38,70 +38,104 @@ export default function SwapPage() {
   const [quote, setQuote] = useState(null);
   const [loadingQuote, setLoadingQuote] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
+  const [showWalletMenu, setShowWalletMenu] = useState(false);
+  const handleDisconnect = () => {
+    setConnected(false);
+    setWalletAddress('');
+    localStorage.setItem('disconnected', 'true');
+    setShowWalletMenu(false);
+  };
+  
+
 
   useEffect(() => {
-    if (!debouncedAmount || isNaN(Number(debouncedAmount)) || Number(debouncedAmount) <= 0) {
-      setQuote(null);
-      setLoadingQuote(false);
-      return;
-    }
-
-    const fetchQuote = async () => {
-      setLoadingQuote(true);
-      const amountWei = parseUnits(debouncedAmount, tokenMeta[fromToken].decimals).toString();
-
-      try {
-        const quoteData = await getQuote(
-          tokenMeta[fromToken].address,
-          tokenMeta[toToken].address,
-          amountWei
-        );
-
-        const rawAmount = quoteData.toAmount ?? quoteData.toTokenAmount;
-        if (!rawAmount) {
-          setQuote(null);
-          setLoadingQuote(false);
-          return;
-        }
-
-        const output = formatUnits(rawAmount, tokenMeta[toToken].decimals);
-        setQuote(output);
-      } catch (err) {
-        console.error('Quote error:', err);
-        setQuote(null);
-      } finally {
-        setLoadingQuote(false);
-      }
-    };
-
-    fetchQuote();
-  }, [fromToken, toToken, debouncedAmount]);
-
-  const handleConnect = async () => {
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-if (accounts && accounts.length > 0) {
-  setConnected(true);
-  setWalletAddress(accounts[0]);
-}
-    if (typeof window.ethereum === 'undefined') {
-      alert('MetaMask not detected. Please install MetaMask.');
-      return;
-    
-    }
+    const wasDisconnected = localStorage.getItem('disconnected') === 'true';
+    if (wasDisconnected) return;
   
-    try {
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      if (accounts && accounts.length > 0) {
-        console.log('Connected account:', accounts[0]);
-        setConnected(true);
-      } else {
-        alert('No accounts returned.');
-      }
-    } catch (err) {
-      console.error('Connection error:', err);
-      alert('Connection failed. Check console for details.');
+    if (typeof window.ethereum !== 'undefined') {
+      window.ethereum
+        .request({ method: 'eth_accounts' })
+        .then((accounts) => {
+          if (accounts.length > 0) {
+            setConnected(true);
+            setWalletAddress(accounts[0]);
+          }
+        })
+        .catch(console.error);
+    }
+  }, []);
+  
+    
+
+useEffect(() => {
+  if (typeof window.ethereum === 'undefined') return;
+
+  const handleAccountsChanged = (accounts) => {
+    if (accounts.length > 0) {
+      setConnected(true);
+      setWalletAddress(accounts[0]);
+    } else {
+      setConnected(false);
+      setWalletAddress('');
     }
   };
+
+  window.ethereum.on('accountsChanged', handleAccountsChanged);
+
+  return () => {
+    window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+  };
+}, []);
+
+useEffect(() => {
+  if (!debouncedAmount || isNaN(Number(debouncedAmount)) || Number(debouncedAmount) <= 0) {
+    setQuote(null);
+    setLoadingQuote(false);
+    return;
+  }
+const fetchQuote = async () => {
+  setLoadingQuote(true);
+  const amountWei = parseUnits(debouncedAmount, tokenMeta[fromToken].decimals).toString();
+
+  try {
+    const quoteData = await getQuote(
+      tokenMeta[fromToken].address,
+      tokenMeta[toToken].address,
+      amountWei
+    );
+
+    const rawAmount = quoteData.toAmount ?? quoteData.toTokenAmount;
+    if (!rawAmount) {
+      setQuote(null);
+      return;
+    }
+
+    const output = formatUnits(rawAmount, tokenMeta[toToken].decimals);
+    setQuote(output);
+  } catch (err) {
+    console.error('Quote error:', err);
+    setQuote(null);
+  } finally {
+    setLoadingQuote(false);
+  }
+};
+
+fetchQuote();
+}, [fromToken, toToken, debouncedAmount]);
+
+const handleConnect = async () => {
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    if (accounts && accounts.length > 0) {
+      localStorage.removeItem('disconnected'); // 👈 Clear manual disconnect flag
+      setConnected(true);
+      setWalletAddress(accounts[0]);
+    }
+  } catch (err) {
+    console.error('Connection failed:', err);
+  }
+};
+
   
   const handleSwap = async () => {
     alert('Swap logic goes here!');
@@ -115,8 +149,21 @@ if (accounts && accounts.length > 0) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f1a] text-white flex justify-center items-center px-4">
-<div className="absolute top-4 right-4 transform scale-120 origin-top-right">
+    <div className="relative min-h-screen w-full text-white overflow-hidden">
+    {/* Background */}
+    <img
+      src="/back.png"
+      alt="Background"
+      className="absolute inset-0 w-full h-full object-cover z-0"
+    />
+
+    {/* Logo */}
+    <div className="absolute top-0 left-0 z-2">
+      <img src="/logo.png" alt="Logo" className="h-32 w-auto" />
+    </div>
+
+    <div className="relative z-10 flex justify-center items-center min-h-screen px-4">
+<div className="absolute top-4 right-4 transform scale-120 origin-top-right z-20">
   {!connected ? (
     <button
       onClick={handleConnect}
@@ -125,11 +172,27 @@ if (accounts && accounts.length > 0) {
       Connect Wallet
     </button>
   ) : (
-    <div className="flex items-center gap-2 bg-[#1c2233] px-3 py-2 rounded-xl text-sm text-white shadow-md">
-      <img src="/icons/metamask.svg" alt="MetaMask" className="w-5 h-5" />
-      <span className="font-mono">
-        {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-      </span>
+    <div className="relative">
+      <button
+        onClick={() => setShowWalletMenu((prev) => !prev)}
+        className="flex items-center gap-2 bg-[#1c2233] px-3 py-2 rounded-xl text-sm text-white shadow-md"
+      >
+        <img src="/metamask.svg" alt="MetaMask" className="w-5 h-5" />
+        <span className="font-mono">
+          {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+        </span>
+      </button>
+
+      {showWalletMenu && (
+        <div className="absolute right-0 mt-2 bg-[#1c2233] border border-[#2a3045] rounded-xl shadow-lg w-full text-sm font-mono z-50">
+          <button
+            onClick={handleDisconnect}
+            className="w-full px-4 py-2 text-left text-white hover:bg-[#2a3045] rounded-xl transition-colors duration-200"
+          >
+            Disconnect
+          </button>
+        </div>
+      )}
     </div>
   )}
 </div>
@@ -165,9 +228,20 @@ if (accounts && accounts.length > 0) {
 
         {/* Arrow Button */}
         <div className="flex justify-center">
-          <button onClick={handleReverse} className="bg-[#1c2233] rounded-full p-2">
-            <img src="/icons/arrow-down.svg" alt="reverse" className="w-4 h-4" />
-          </button>
+        <button onClick={handleReverse} className="bg-[#1c2233] p-2 rounded-full hover:bg-[#2b334d] transition">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-5 w-5 text-white"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <circle cx="12" cy="12" r="11" stroke="currentColor" strokeWidth="2" fill="transparent" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v8m0 0l-4-4m4 4l4-4" />
+  </svg>
+</button>
+
         </div>
 
         {/* To Section */}
@@ -221,6 +295,7 @@ if (accounts && accounts.length > 0) {
 
 
       </div>
+    </div>
     </div>
   );
 }
