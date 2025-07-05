@@ -1,16 +1,13 @@
 // lib/provider.ts
-import { ethers } from 'ethers';
+import { EtherscanProvider, type Networkish } from 'ethers';
 
-const NETWORKS: Record<number, ethers.networks.Networkish> = {
-  1: 'homestead',
-  137: 'matic',
-  42161: 'arbitrum',
+const NETWORKS: Record<number, Networkish> = {
+  1:  'homestead',   // Ethereum mainnet
+  137: 'matic',      // Polygon
+  42161: 'arbitrum', // Arbitrum One
 };
 
 export function getProvider(chainId: number = 1) {
   const network = NETWORKS[chainId] ?? 'homestead';
-  return new ethers.providers.EtherscanProvider(
-    network,
-    process.env.ETHERSCAN_API_KEY,
-  );
+  return new EtherscanProvider(network, process.env.ETHERSCAN_API_KEY);
 }

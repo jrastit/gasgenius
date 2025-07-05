@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Erc7730History } from './Erc7730History';
 
 interface Erc7730Info {
   name: string;
@@ -13,6 +14,7 @@ interface TxRecord {
   hash: string;
   from: string;
   to: string | null;
+  data: string;
   value: string;
   blockNumber: number;
   timestamp: number;
@@ -79,48 +81,14 @@ export default function AddressHistory() {
 
       {error && <p className="text-red-600 mb-4">{error}</p>}
 
-      <ul className="space-y-4">
-        {txs.map((tx) => (
-          <li
-            key={tx.hash}
-            className={`p-4 rounded border ${
-              tx.erc7730
-                ? 'bg-yellow-50 border-yellow-400'
-                : 'bg-gray-50 border-gray-300'
-            }`}
-          >
-            <div className="flex justify-between items-center">
-              <span className="font-mono text-xs break-all">{tx.hash}</span>
-              <span className="text-xs text-gray-600">
-                {new Date(tx.timestamp).toLocaleString()}
-              </span>
-            </div>
-
-            <div className="text-sm mt-2">
-              <p>
-                <strong>From:</strong> {tx.from}
-              </p>
-              <p>
-                <strong>To:</strong> {tx.to ?? '—'}
-              </p>
-              <p>
-                <strong>Value:</strong> {tx.value} wei
-              </p>
-
-              {tx.erc7730 && (
-                <div className="mt-2 p-2 rounded bg-yellow-100 border-l-4 border-yellow-600">
-                  <p className="font-semibold">
-                    ERC‑7730 Contract: {tx.erc7730.name}
-                  </p>
-                  {tx.erc7730.description && (
-                    <p className="text-xs">{tx.erc7730.description}</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
+      <Erc7730History
+        transactions={txs.map((tx) => ({
+          ...tx,
+          data: tx.data, // or tx.data if available
+          to: tx.to ?? '', // ensure 'to' is a string
+          erc7730: tx.erc7730 || null, // ensure erc7730 is not undefined
+        }))}
+      />
     </div>
   );
 }
