@@ -18,7 +18,7 @@ const prettyLabel = (name: string) =>
 
 const mapFormat = (type: string) => {
   if (type.startsWith('uint') || type.startsWith('int')) return 'raw'
-  if (type === 'address') return 'addressOrName'
+  //if (type === 'address') return 'addressName'
   return 'raw'
 }
 
@@ -63,6 +63,7 @@ export function buildErc7730Json({
       $id: contractName,
       contract: {
         abi: `https://api.etherscan.io/api?module=contract&action=getabi&address=${address}`,
+        //abi: abi,
         deployments: [
           {
             chainId,
