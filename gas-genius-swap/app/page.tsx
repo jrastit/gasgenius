@@ -253,18 +253,16 @@ const handleConnect = async () => {
              [&::-webkit-outer-spin-button]:appearance-none 
              [-moz-appearance:textfield]"
 />
-{connected && (
-  <p className="text-xs text-gray-500 mt-1 text-right">
-    {tokenBalance !== null
-      ? `${formatUnits(tokenBalance || 0, tokenMeta[fromToken].decimals)} ${tokenMeta[fromToken].symbol}`
-      : ''}
-  </p>
-)}
 
 
 
 
           </div>
+          {connected && tokenBalance !== null && (
+  <p className="text-right text-xs text-gray-500 mt-1">
+    {formatUnits(tokenBalance, tokenMeta[fromToken].decimals)} {tokenMeta[fromToken].symbol}
+  </p>
+)}
         </div>
 
         {/* Arrow Button */}
@@ -306,7 +304,10 @@ const handleConnect = async () => {
         <div className="text-xs text-gray-400 text-center">
           {quote && debouncedAmount && Number(debouncedAmount) > 0 && !loadingQuote && (
             <p>
-              1 {fromToken} ≈ {(Number(quote) / Number(debouncedAmount)).toFixed(2)} {toToken} <span className="text-gray-600">(~$2498.1)</span>
+              1 {fromToken} ≈ {(Number(quote) / Number(debouncedAmount)).toFixed(
+  Number(quote) / Number(debouncedAmount) < 0.01 ? 12 : 2
+)} {toToken}
+<span className="text-gray-600">(~$2498.1)</span>
             </p>
           )}
         </div>
