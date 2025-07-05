@@ -53,22 +53,26 @@ async function getBlockData(blockNumber) {
       return null;
     }
 
-    const gasPrices = block.transactions.map(tx => tx.gasPrice ? BigInt(tx.gasPrice) : null)
-    .filter(price => price !== null);
+    // ➤ Nettoie les transactions pour ne garder que celles avec un gasPrice valide
+    const gasPrices = block.transactions
+      .map(tx => tx.gasPrice ? BigInt(tx.gasPrice) : null)
+      .filter(Boolean);
 
-    if (validPrices.length === 0) return null;
-    
+    if (gasPrices.length === 0) {
+      console.warn(`Block ${blockNumber} has no valid gasPrice data.`);
+      return null;
+    }
+
     gasPrices.sort((a, b) => (a < b ? -1 : 1));
     const idx = p => Math.floor((gasPrices.length - 1) * p);
 
     return {
       blockNumber,
-      lowGas:  Number(gasPrices[idx(0.25)]) / 1e9,
-      mediumGas:  Number(gasPrices[idx(0.5)]) / 1e9,
+      lowGas: Number(gasPrices[idx(0.25)]) / 1e9,
+      mediumGas: Number(gasPrices[idx(0.5)]) / 1e9,
       highGas: Number(gasPrices[idx(0.75)]) / 1e9,
       timestamp: parseInt(block.timestamp, 16),
-    };  
-
+    };
   } catch (err) {
     console.error(`Error fetching block ${blockNumber}:`, err.message);
     return null;
