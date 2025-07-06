@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { parseUnits, formatUnits } from 'ethers';
+import { useState, useEffect, useRef } from 'react';
+import { parseUnits, formatUnits, ethers } from 'ethers';
 import { useDebounce } from '../hooks/useDebounce';
 import AddressHistory from './components/AddressHistory';
 import { getQuote, getTokenBalance ,getSwapTx} from '../utils/oneInchApi';
@@ -35,6 +35,7 @@ const tokenMeta = {
 };
 
 export default function SwapPage() {
+  const ONE_INCH_SPENDER = "0x1111111254EEB25477B68fb85Ed929f73A960582";
   const [connected, setConnected] = useState(false);
   const [fromToken, setFromToken] = useState('ETH');
   const [toToken, setToToken] = useState('USDC');
@@ -45,6 +46,14 @@ export default function SwapPage() {
   const [walletAddress, setWalletAddress] = useState('');
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(null);
+  const debouncedFromToken = useDebounce(fromToken, 500);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [swapDetails, setSwapDetails] = useState({ fromSymbol: '', toSymbol: '' });
+
+  const [usdPrice, setUsdPrice] = useState(null);
+  const quoteInProgress = useRef(false);
+  const balanceInProgress = useRef(false);
+
   const isInvalidAmount = !debouncedAmount || isNaN(Number(debouncedAmount)) || Number(debouncedAmount) <= 0;
   const handleDisconnect = () => {
     setConnected(false);
@@ -61,12 +70,12 @@ export default function SwapPage() {
   
     const handleAccountsChanged = (accounts) => {
       if (accounts.length === 0) {
-        // 🛑 MetaMask disconnected manually
+        // MetaMask disconnected manually
         setConnected(false);
         setWalletAddress('');
         localStorage.setItem('disconnected', 'true');
       } else {
-        // ✅ MetaMask account changed or connected
+        // MetaMask account changed or connected
         setConnected(true);
         setWalletAddress(accounts[0]);
         localStorage.removeItem('disconnected');
@@ -102,13 +111,14 @@ const hasEnoughFunds =
   }, []);
   
   
-// ✅ Quote fetch logic
+// Quote fetch logic
 useEffect(() => {
   if (!debouncedAmount || isNaN(Number(debouncedAmount)) || Number(debouncedAmount) <= 0) {
     setQuote(null);
     setLoadingQuote(false);
     return;
   }
+
 
   const fetchQuote = async () => {
     setLoadingQuote(true);
@@ -140,14 +150,13 @@ useEffect(() => {
   fetchQuote();
 }, [fromToken, toToken, debouncedAmount]);
 
-// ✅ Token balance fetch logic — defined separately
+// Token balance fetch logic — defined separately
 useEffect(() => {
-  if (!connected || !walletAddress || !fromToken) return;
-
+  if (!connected || !walletAddress || !debouncedFromToken) return;
 
   const fetchBalance = async () => {
     try {
-      const balance = await getTokenBalance(walletAddress, tokenMeta[fromToken].address);
+      const balance = await getTokenBalance(walletAddress, tokenMeta[debouncedFromToken].address);
       setTokenBalance(balance);
     } catch (err) {
       console.error('Error fetching token balance:', err);
@@ -155,7 +164,8 @@ useEffect(() => {
   };
 
   fetchBalance();
-}, [connected, walletAddress, fromToken]);
+}, [connected, walletAddress, debouncedFromToken]);
+
 
 
 
@@ -258,6 +268,11 @@ setShowSuccessModal(true);
     setFromToken(toToken);
     setToToken(temp);
     setQuote(null);
+  
+    // Optional: Delay balance call after quote finishes
+    setTimeout(() => {
+      setFromToken(toToken); // trigger balance fetch again safely
+    }, 200);
   };
 
   return (
@@ -348,10 +363,10 @@ setShowSuccessModal(true);
 
         {/* Arrow Button */}
         <div className="flex justify-center">
-        <button onClick={handleReverse} className="bg-[#1c2233] p-2 rounded-full hover:bg-[#2b334d] transition">
+<button onClick={handleReverse} className="bg-[#1c2233] p-4 rounded-full hover:bg-[#2b334d] transition">
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    className="h-5 w-5 text-white"
+    className="h-8 w-8 text-white"
     fill="none"
     viewBox="0 0 24 24"
     stroke="currentColor"
@@ -388,7 +403,11 @@ setShowSuccessModal(true);
               1 {fromToken} ≈ {(Number(quote) / Number(debouncedAmount)).toFixed(
   Number(quote) / Number(debouncedAmount) < 0.01 ? 12 : 2
 )} {toToken}
-<span className="text-gray-600">(~$2498.1)</span>
+{usdPrice && quote && (
+  <span className="text-gray-600">
+    (~${(Number(quote) * usdPrice).toFixed(2)})
+  </span>
+)}
             </p>
           )}
         </div>
@@ -432,6 +451,19 @@ setShowSuccessModal(true);
       </div>
     </div>
     
+    {showSuccessModal && (
+  <TransactionSuccessModal
+    fromSymbol={swapDetails.fromSymbol}
+    toSymbol={swapDetails.toSymbol}
+    onClose={() => setShowSuccessModal(false)}
+    onShowClearSignin={() => {
+      alert("Clear Signin coming soon");
+    }}
+  />
+)}
+
     </div>
+    
+
   );
 }
