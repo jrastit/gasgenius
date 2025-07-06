@@ -136,7 +136,7 @@ def predict_until_now():
 
     feature_cols = ['low_gas_price', 'medium_gas_price', 'high_gas_price',
                     'hour', 'minute', 'dayofweek', 'day', 'month', 'year']
-    window = 10
+    window = 1000
 
     df = add_time_features(df)
 
@@ -153,7 +153,6 @@ def predict_until_now():
     last_timestamp = datetime.strptime(timestamp_model, "%Y%m%d_%H%M%S")# pd.to_datetime(df['timestamp'].iloc[-1])
     print("Last time train: ", last_timestamp)
     n_steps = int((current_time-last_timestamp).total_seconds()//60)
-    print(n_steps)
     if n_steps >= 10:
         threads = [t for t in threads if t.is_alive()]
         if len(threads)==0:
@@ -162,7 +161,7 @@ def predict_until_now():
             threads.append(t)
 
     preds = []
-
+    next_time = None
     for step in range(1, n_steps + 1):
         with torch.no_grad():
             output_scaled = model(current_seq)
@@ -194,9 +193,11 @@ def predict_until_now():
     print(f"Needed {n_steps} step to predict current gas fee")
     
     # Renvoyer la dernière prédiction
+    if len(preds)==0:
+        preds.append(input_seq[-1].tolist()[:3])
     return {
         "predicted_gas_fee_at_now": {
-            "timestamp": str(next_time),
+            "timestamp": str(next_time) if next_time else str(last_timestamp),
             "low": round(float(preds[-1][0]), 2),
             "medium": round(float(preds[-1][1]), 2),
             "high": round(float(preds[-1][2]), 2),
