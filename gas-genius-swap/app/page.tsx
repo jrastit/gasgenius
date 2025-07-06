@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { parseUnits, formatUnits } from 'ethers';
 import { useDebounce } from '../hooks/useDebounce';
 import { getQuote, getTokenBalance } from '../utils/oneInchApi';
+import AddressHistory from './components/AddressHistory';
 
 const tokenMeta = {
   ETH: {
@@ -344,10 +345,13 @@ const handleConnect = async () => {
 </button>
 
 
-
+      <section style={{ width: '100%' }}>
+        <AddressHistory address={walletAddress}/>
+      </section>
 
       </div>
     </div>
+    
     </div>
   );
 }

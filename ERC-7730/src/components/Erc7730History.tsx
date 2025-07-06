@@ -28,10 +28,10 @@ export const Erc7730History: React.FC<Erc7730HistoryProps> = ({
         const fetchDecoded = async () => {
             const results: Record<string, any> = {};
             for (const tx of transactions) {
-                console.log('Processing transaction2:', tx);
+                console.log('Processing transaction:', tx);
                 try {
-                    console.log('Transaction data:', tx.erc7730);
-                    results[tx.hash] = { decoded: tx.erc7730 };
+                    
+                    results[tx.hash] = { decoded: tx.erc7730?.erc7730 };
                     
                 } catch {
                     console.error('Failed to decode transaction:', tx.hash);
@@ -43,7 +43,7 @@ export const Erc7730History: React.FC<Erc7730HistoryProps> = ({
         fetchDecoded();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [transactions, decodeEnabled]);
-    console.log('Decoded transactions to return:', decoded);
+
     return (
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
             <h2>ERC-7730 Transaction History</h2>
@@ -74,7 +74,6 @@ export const Erc7730History: React.FC<Erc7730HistoryProps> = ({
                         {decodeEnabled && (
                             <div style={{ marginTop: 12 }}>
                                 <strong>Decoded Call:</strong>
-                                {console.log('Decoded for', tx.hash, decoded[tx.hash]?.decoded)}
                                 <pre
                                     style={{
                                         background: '#f0f0f0',
