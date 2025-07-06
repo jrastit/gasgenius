@@ -1,46 +1,66 @@
 import { Interface } from 'ethers';
 
-const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY 
-export async function getErc7730Info(data : string, erc7730: any) {
-    if (!data || !erc7730) {
-        return null;
-    }
-    
-    let abi = erc7730?.context?.contract?.abi || erc7730?.context?.eip712?.abi;
-    
-    if (typeof abi === 'string') {
-        try {
-            const abi_url = new URL(abi);
-            if (abi_url.protocol === 'http:' || abi_url.protocol === 'https:') {
-                // Fetch the ABI from the URL
-                const ret = await fetch(abi_url.toString() + `&apikey=${ETHERSCAN_API_KEY}`)
-                if (!ret.ok) {
-                    console.error('Failed to fetch ABI from URL:', abi_url.toString());
-                    return null;
-                }
-                const abiData = await ret.json();
-                if (abiData.status !== '1') {
-                    console.error('Failed to fetch ABI:', abiData.result);
-                    return null;
-                }
-                abi = JSON.parse(abiData.result);
-            }
-        } catch (e) {
-            console.error('Failed to parse ABI string:', e);
+let lastCall = Date.now();
+
+// const abiCache: Record<string, any> = {};
+
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY
+export async function getErc7730Info(data: string, erc7730: any) {
+  if (!data || !erc7730) {
+    return null;
+  }
+
+  let abi = erc7730?.context?.contract?.abi || erc7730?.context?.eip712?.abi;
+
+  if (typeof abi === 'string') {
+    try {
+      const abi_url = new URL(abi);
+      if (abi_url.protocol === 'http:' || abi_url.protocol === 'https:') {
+
+        // try {
+        //   abi = abiCache[abi_url.toString()];
+        // } catch (e) {
+        //   console.error('Failed to fetch ABI from cache:', e);
+        //   abi = null;
+        // }
+        if (typeof abi === 'string') {
+          // Fetch the ABI from the URL
+          if (lastCall && Date.now() - lastCall < 2000) {
+            // Wait until 2 seconds have passed since the last call
+            await new Promise(resolve => setTimeout(resolve, 2000 - (Date.now() - lastCall)));
+          }
+          const ret = await fetch(abi_url.toString() + `&apikey=${ETHERSCAN_API_KEY}`)
+          lastCall = Date.now(); // Update last call time
+          if (!ret.ok) {
+            console.error('Failed to fetch ABI from URL:', abi_url.toString());
             return null;
+          }
+          const abiData = await ret.json();
+          if (abiData.status !== '1') {
+            console.error('Failed to fetch ABI:', abiData.result);
+            return null;
+          }
+          abi = JSON.parse(abiData.result);
+          //abiCache[abi_url.toString()] = abi;
         }
-    }
 
-    //console.log('getErc7730Info', abi);
-
-    if (!Array.isArray(abi) || abi.length === 0) {
-        console.warn('No valid ABI found for ERC-7730');
-        return null;
+      }
+    } catch (e) {
+      console.error('Failed to parse ABI string:', e);
+      return null;
     }
-    const ret = getErc7730InfoAbi(data, abi, erc7730);
-    // console.info('getErc7730InfoAbi', ret);
-    return ret;
-    
+  }
+
+  //console.log('getErc7730Info', abi);
+
+  if (!Array.isArray(abi) || abi.length === 0) {
+    console.warn('No valid ABI found for ERC-7730');
+    return null;
+  }
+  const ret = getErc7730InfoAbi(data, abi, erc7730);
+  // console.info('getErc7730InfoAbi', ret);
+  return ret;
+
 }
 export interface Erc7730Format {
   /** Human-readable field name, e.g. "recipient" */
@@ -82,12 +102,12 @@ export function getErc7730InfoAbi<
 >(
   data: string,
   abi: unknown[],
-  erc7730?: {metadata:any, display : { formats: F }},
+  erc7730?: { metadata: any, display: { formats: F } },
 ): ParsedErc7730Tx<
   F extends readonly Erc7730Format[]
-    ? { [K in keyof F as F[K] extends Erc7730Format ? F[K]['name'] : never]:
-          unknown }
-    : Record<string, unknown>
+  ? { [K in keyof F as F[K] extends Erc7730Format ? F[K]['name'] : never]:
+    unknown }
+  : Record<string, unknown>
 > | null {
   if (!Array.isArray(abi) || abi.length === 0) {
     console.warn('[getErc7730Info] No valid ABI supplied');
@@ -107,27 +127,27 @@ export function getErc7730InfoAbi<
   const namedArgs: Record<string, unknown> = {};
   const formats = erc7730?.display?.formats || {};
   // console.log('getErc7730InfoAbi', formats, parsed);
-// Try to map args using the format structure if available
+  // Try to map args using the format structure if available
 
-let erc7730Info: { intent?: string, metadata: any } | undefined = undefined;
+  let erc7730Info: { intent?: string, metadata: any } | undefined = undefined;
 
-if (formats) {
+  if (formats) {
     // Get selector from calldata
-    const selector : string = parsed?.selector || data.slice(0, 10);
+    const selector: string = parsed?.selector || data.slice(0, 10);
     const formatEntry = (formats as Record<string, any>)[selector];
     // console.log('getErc7730InfoAbi formatEntry', formatEntry, selector);
     if (formatEntry && Array.isArray(formatEntry.fields)) {
-        formatEntry.fields.forEach((field: any, idx: number) => {
-            // Use field.name if available, else fallback to index
-            const name = field.name || `arg${idx}`;
-            namedArgs[name] = parsed?.args?.[idx];
-        });
+      formatEntry.fields.forEach((field: any, idx: number) => {
+        // Use field.name if available, else fallback to index
+        const name = field.name || `arg${idx}`;
+        namedArgs[name] = parsed?.args?.[idx];
+      });
     }
     erc7730Info = {
-        metadata: erc7730?.metadata,
-        intent : formatEntry?.intent 
+      metadata: erc7730?.metadata,
+      intent: formatEntry?.intent
     };
-} 
+  }
 
   return {
     // method: parsed?.name,

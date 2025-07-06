@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "PORT=3040 next start",
     "lint": "next lint",
-    "pm2": "pm2 start npm --name gas-genius-swap -- run start"
+    "pm2": "pm2 start npm --name gas-genius-swap -- run dev -- --turbopack --port 3040"
   },
   "dependencies": {
     "@web3-react/core": "^8.2.3",
@@ -15,6 +15,7 @@
     "axios": "^1.10.0",
     "ethers": "^6.15.0",
     "next": "15.3.5",
+    "pm2": "^6.0.8",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
