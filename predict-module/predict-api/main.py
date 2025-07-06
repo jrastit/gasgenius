@@ -133,13 +133,15 @@ def predict_until_now():
 
     # 4. Boucle jusqu'à now
     current_time = datetime.utcnow()
-    last_timestamp = pd.to_datetime(df['timestamp'].iloc[-1])
+    timestamp_model = latest_model_path.split("_")[-2]+"_"+latest_model_path.split("_")[-1].split(".pt")[0]
+    last_timestamp = datetime.strptime(timestamp_model, "%Y%m%d_%H%M%S")# pd.to_datetime(df['timestamp'].iloc[-1])
+    print("Last time train: ", last_timestamp)
 
     df = df.copy()
-
+    t=None
     if (current_time-last_timestamp).total_seconds()//60 >= 10:
         print("Retrain a new model more update to date")
-        threading.Thread(target=retrain_models).start()
+        t=threading.Thread(target=retrain_models).start()
 
     c=0
     while last_timestamp < current_time:
@@ -180,7 +182,8 @@ def predict_until_now():
         c+=1
 
     print(f"Needed {c} step to predict current gas fee")
-
+    if t is not None:
+        t.join()
     # Renvoyer la dernière prédiction
     return {
         "predicted_gas_fee_at_now": {
@@ -204,7 +207,7 @@ def load_model_and_scalers(model_path, scaler_x_path, scaler_y_path):
     return model, scaler_x, scaler_y
 
 @app.get("/predict/next_n_steps")
-def predict_next_n_steps(n_steps: int = Query(1, ge=1, le=60), key:str=Query("medium_gas_price")):
+def predict_next_n_steps(n_steps: int = Query(1, ge=1, le=600), key:str=Query("medium_gas_price")):
     model_path = sorted(glob.glob(f"{MODEL_DIR}/multivariate/multivariate_lstm_*.pt"))
     if not model_path:
         raise HTTPException(status_code=404, detail="Modèle multivarié non trouvé.")
