@@ -276,7 +276,7 @@ def train_models():
     
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    epochs = 100
+    epochs = 80
     for epoch in range(epochs):
         model.train()
         optimizer.zero_grad()
