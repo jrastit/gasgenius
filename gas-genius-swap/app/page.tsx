@@ -1,10 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { parseUnits, formatUnits } from 'ethers';
+import { useState, useEffect, useRef } from 'react';
+import { parseUnits, formatUnits, ethers } from 'ethers';
 import { useDebounce } from '../hooks/useDebounce';
-import { getQuote, getTokenBalance } from '../utils/oneInchApi';
 import AddressHistory from './components/AddressHistory';
+import { getQuote, getTokenBalance ,getSwapTx} from '../utils/oneInchApi';
+import { erc20Abi } from '../utils/erc20Abi';
+import TransactionSuccessModal from './TransactionSuccessModal';
+import { getOptimisedGasPrice } from '../utils/gasApi'; // adjust path if needed
+
 
 const tokenMeta = {
   ETH: {
@@ -31,6 +35,7 @@ const tokenMeta = {
 };
 
 export default function SwapPage() {
+  const ONE_INCH_SPENDER = "0x1111111254EEB25477B68fb85Ed929f73A960582";
   const [connected, setConnected] = useState(false);
   const [fromToken, setFromToken] = useState('ETH');
   const [toToken, setToToken] = useState('USDC');
@@ -41,6 +46,14 @@ export default function SwapPage() {
   const [walletAddress, setWalletAddress] = useState('');
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const [tokenBalance, setTokenBalance] = useState(null);
+  const debouncedFromToken = useDebounce(fromToken, 500);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [swapDetails, setSwapDetails] = useState({ fromSymbol: '', toSymbol: '' });
+
+  const [usdPrice, setUsdPrice] = useState(null);
+  const quoteInProgress = useRef(false);
+  const balanceInProgress = useRef(false);
+
   const isInvalidAmount = !debouncedAmount || isNaN(Number(debouncedAmount)) || Number(debouncedAmount) <= 0;
   const handleDisconnect = () => {
     setConnected(false);
@@ -57,12 +70,12 @@ export default function SwapPage() {
   
     const handleAccountsChanged = (accounts) => {
       if (accounts.length === 0) {
-        // 🛑 MetaMask disconnected manually
+        // MetaMask disconnected manually
         setConnected(false);
         setWalletAddress('');
         localStorage.setItem('disconnected', 'true');
       } else {
-        // ✅ MetaMask account changed or connected
+        // MetaMask account changed or connected
         setConnected(true);
         setWalletAddress(accounts[0]);
         localStorage.removeItem('disconnected');
@@ -98,13 +111,14 @@ const hasEnoughFunds =
   }, []);
   
   
-// ✅ Quote fetch logic
+// Quote fetch logic
 useEffect(() => {
   if (!debouncedAmount || isNaN(Number(debouncedAmount)) || Number(debouncedAmount) <= 0) {
     setQuote(null);
     setLoadingQuote(false);
     return;
   }
+
 
   const fetchQuote = async () => {
     setLoadingQuote(true);
@@ -136,14 +150,13 @@ useEffect(() => {
   fetchQuote();
 }, [fromToken, toToken, debouncedAmount]);
 
-// ✅ Token balance fetch logic — defined separately
+// Token balance fetch logic — defined separately
 useEffect(() => {
-  if (!connected || !walletAddress || !fromToken) return;
-
+  if (!connected || !walletAddress || !debouncedFromToken) return;
 
   const fetchBalance = async () => {
     try {
-      const balance = await getTokenBalance(walletAddress, tokenMeta[fromToken].address);
+      const balance = await getTokenBalance(walletAddress, tokenMeta[debouncedFromToken].address);
       setTokenBalance(balance);
     } catch (err) {
       console.error('Error fetching token balance:', err);
@@ -151,7 +164,8 @@ useEffect(() => {
   };
 
   fetchBalance();
-}, [connected, walletAddress, fromToken]);
+}, [connected, walletAddress, debouncedFromToken]);
+
 
 
 
@@ -169,15 +183,96 @@ const handleConnect = async () => {
 };
 
   
-  const handleSwap = async () => {
-    alert('Swap logic goes here!');
-  };
+
+const handleSwap = async () => {
+  if (!window.ethereum) {
+    alert("Wallet not found");
+    return;
+  }
+
+  try {
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const fromAddress = await signer.getAddress();
+
+    const amountWei = parseUnits(debouncedAmount, tokenMeta[fromToken].decimals).toString();
+
+    // 🔐 ERC-20 Approval (if not ETH)
+    if (tokenMeta[fromToken].address !== "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") {
+      const tokenContract = new ethers.Contract(tokenMeta[fromToken].address, erc20Abi, signer);
+      const allowance = await tokenContract.allowance(fromAddress, ONE_INCH_SPENDER);
+      if (BigInt(allowance) < BigInt(amountWei)) {
+        const approvalTx = await tokenContract.approve(ONE_INCH_SPENDER, amountWei);
+        await approvalTx.wait();
+        console.log("Token approval confirmed.");
+      }
+    }
+
+    // ⚙️ Get swap tx from 1inch
+    const txData = await getSwapTx(
+      tokenMeta[fromToken].address,
+      tokenMeta[toToken].address,
+      amountWei,
+      fromAddress
+    );
+
+    // 🐢 Use a slow gas price (half of current market)
+    const safeGasPrice = await getOptimisedGasPrice(); // from your prediction API
+
+
+    // 🧱 Build tx preview for gas estimate
+    const txPreview = {
+      to: txData.to,
+      data: txData.data,
+      value: txData.value ? BigInt(txData.value) : undefined,
+    };
+
+    
+    const estimatedGas = txData.gas && parseInt(txData.gas) > 21000
+    ? BigInt(txData.gas)
+    : await signer.estimateGas(txPreview);
+  
+  const paddedGasLimit = estimatedGas * BigInt(110) / BigInt(100); // +10% buffer
+
+    // 📦 Final tx request
+    const txRequest = {
+      ...txPreview,
+      gasLimit: paddedGasLimit,
+      gasPrice: safeGasPrice,
+    };
+
+    // 🚀 Send transaction
+    const tx = await signer.sendTransaction(txRequest);
+    console.log("Swap tx sent:", tx.hash);
+    alert(`Swap sent! Tx hash: ${tx.hash}`);
+
+    await tx.wait();
+setSwapDetails({ fromSymbol: tokenMeta[fromToken].symbol, toSymbol: tokenMeta[toToken].symbol });
+setShowSuccessModal(true);
+    
+
+    // 🔄 Refresh balance
+    const updatedBalance = await getTokenBalance(fromAddress, tokenMeta[fromToken].address);
+    setTokenBalance(updatedBalance);
+  } catch (err) {
+    console.error("Swap failed:", err);
+    alert("Swap failed: " + (err?.message || "Unknown error"));
+  }
+};
+
+
+
 
   const handleReverse = () => {
     const temp = fromToken;
     setFromToken(toToken);
     setToToken(temp);
     setQuote(null);
+  
+    // Optional: Delay balance call after quote finishes
+    setTimeout(() => {
+      setFromToken(toToken); // trigger balance fetch again safely
+    }, 200);
   };
 
   return (
@@ -268,10 +363,10 @@ const handleConnect = async () => {
 
         {/* Arrow Button */}
         <div className="flex justify-center">
-        <button onClick={handleReverse} className="bg-[#1c2233] p-2 rounded-full hover:bg-[#2b334d] transition">
+<button onClick={handleReverse} className="bg-[#1c2233] p-4 rounded-full hover:bg-[#2b334d] transition">
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    className="h-5 w-5 text-white"
+    className="h-8 w-8 text-white"
     fill="none"
     viewBox="0 0 24 24"
     stroke="currentColor"
@@ -308,7 +403,11 @@ const handleConnect = async () => {
               1 {fromToken} ≈ {(Number(quote) / Number(debouncedAmount)).toFixed(
   Number(quote) / Number(debouncedAmount) < 0.01 ? 12 : 2
 )} {toToken}
-<span className="text-gray-600">(~$2498.1)</span>
+{usdPrice && quote && (
+  <span className="text-gray-600">
+    (~${(Number(quote) * usdPrice).toFixed(2)})
+  </span>
+)}
             </p>
           )}
         </div>
@@ -352,6 +451,19 @@ const handleConnect = async () => {
       </div>
     </div>
     
+    {showSuccessModal && (
+  <TransactionSuccessModal
+    fromSymbol={swapDetails.fromSymbol}
+    toSymbol={swapDetails.toSymbol}
+    onClose={() => setShowSuccessModal(false)}
+    onShowClearSignin={() => {
+      alert("Clear Signin coming soon");
+    }}
+  />
+)}
+
     </div>
+    
+
   );
 }
