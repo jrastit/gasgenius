@@ -7,6 +7,8 @@ import AddressHistory from './components/AddressHistory';
 import { getQuote, getTokenBalance ,getSwapTx} from '../utils/oneInchApi';
 import { erc20Abi } from '../utils/erc20Abi';
 import TransactionSuccessModal from './TransactionSuccessModal';
+import { getOptimisedGasPrice } from '../utils/gasApi'; // adjust path if needed
+
 
 const tokenMeta = {
   ETH: {
@@ -215,10 +217,8 @@ const handleSwap = async () => {
     );
 
     // 🐢 Use a slow gas price (half of current market)
-    const feeData = await provider.getFeeData();
-    const safeGasPrice = feeData.gasPrice
-    ? (feeData.gasPrice * BigInt(115)) / BigInt(100)  // +15% buffer
-    : undefined;
+    const safeGasPrice = await getOptimisedGasPrice(); // from your prediction API
+
 
     // 🧱 Build tx preview for gas estimate
     const txPreview = {
