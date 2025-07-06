@@ -87,7 +87,7 @@ def load_model_and_scalers(model_path, scaler_x_path, scaler_y_path):
     return model, scaler_x, scaler_y
 
 @app.get("/predict/next_n_steps")
-def predict_next_n_steps(n_steps: int = Query(1, ge=1, le=60), key:str="low_gas_price"):
+def predict_next_n_steps(n_steps: int = Query(1, ge=1, le=60), key:str=Query("low_gas_price")):
     model_path = sorted(glob.glob(f"{MODEL_DIR}/multivariate/multivariate_lstm_*.pt"))
     if not model_path:
         raise HTTPException(status_code=404, detail="Modèle multivarié non trouvé.")
