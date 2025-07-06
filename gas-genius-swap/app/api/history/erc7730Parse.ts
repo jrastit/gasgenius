@@ -31,14 +31,14 @@ export async function getErc7730Info(data : string, erc7730: any) {
         }
     }
 
-    console.log('getErc7730Info', abi);
+    //console.log('getErc7730Info', abi);
 
     if (!Array.isArray(abi) || abi.length === 0) {
         console.warn('No valid ABI found for ERC-7730');
         return null;
     }
     const ret = getErc7730InfoAbi(data, abi, erc7730);
-    console.info('getErc7730InfoAbi', ret);
+    // console.info('getErc7730InfoAbi', ret);
     return ret;
     
 }
@@ -106,7 +106,7 @@ export function getErc7730InfoAbi<
   // Map raw positional args → named object if `formats` is provided
   const namedArgs: Record<string, unknown> = {};
   const formats = erc7730?.display?.formats || {};
-  console.log('getErc7730InfoAbi', formats, parsed);
+  // console.log('getErc7730InfoAbi', formats, parsed);
 // Try to map args using the format structure if available
 
 let erc7730Info: { intent?: string, metadata: any } | undefined = undefined;
@@ -115,7 +115,7 @@ if (formats) {
     // Get selector from calldata
     const selector : string = parsed?.selector || data.slice(0, 10);
     const formatEntry = (formats as Record<string, any>)[selector];
-    console.log('getErc7730InfoAbi formatEntry', formatEntry, selector);
+    // console.log('getErc7730InfoAbi formatEntry', formatEntry, selector);
     if (formatEntry && Array.isArray(formatEntry.fields)) {
         formatEntry.fields.forEach((field: any, idx: number) => {
             // Use field.name if available, else fallback to index

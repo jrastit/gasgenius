@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Interface } from 'ethers';
+import Erc7730Generator from './Erc7730Generator';
 
 interface Transaction {
     hash: string;
@@ -8,6 +9,7 @@ interface Transaction {
     value: string;
     data: string;
     blockNumber?: number;
+    timestamp?: number;
     [key: string]: any;
     erc7730?: any;
 }
@@ -59,6 +61,18 @@ export const Erc7730History: React.FC<Erc7730HistoryProps> = ({
                             padding: 20,
                         }}
                     >
+                        {tx.timestamp && (
+                            <div style={{ color: '#bdbdbd', fontSize: 13, marginBottom: 8 }}>
+                                {new Date(tx.timestamp).toLocaleString(undefined, {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                })}
+                            </div>
+                        )}
                         <div>
                             <strong >Tx:</strong> <a
                                 href={`https://etherscan.io/tx/${tx.hash}`}
@@ -152,6 +166,9 @@ export const Erc7730History: React.FC<Erc7730HistoryProps> = ({
                                 </pre>
                                 
                             </div>
+                        )}
+                        {decodeEnabled && !decoded[tx.hash]?.decoded && (
+                            <Erc7730Generator address={tx.to}></Erc7730Generator>
                         )}
                     </li>
                 ))}

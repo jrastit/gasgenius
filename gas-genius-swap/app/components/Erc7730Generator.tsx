@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 
-export default function Erc7730Generator() {
-  const [address, setAddress] = useState('');
+export default function Erc7730Generator({ address: address = '' }: { address?: string }) {
   const [chainId, setChainId] = useState(1);
   const [json, setJson] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -38,64 +37,61 @@ export default function Erc7730Generator() {
   };
 
   return (
-    <main className="flex flex-col items-center p-8">
-      <h1 className="text-2xl font-bold mb-4">
-        ERC-7730 Generator from Etherscan
-      </h1>
-
-      <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
-        <input
-          type="text"
-          placeholder="Contract address"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          className="border px-2 py-1 rounded w-80"
-          required
-        />
-
-        <select
-          value={chainId}
-          onChange={(e) => setChainId(Number(e.target.value))}
-          className="border px-2 py-1 rounded"
-        >
-          <option value={1}>Ethereum Mainnet</option>
-          <option value={137}>Polygon</option>
-          <option value={42161}>Arbitrum One</option>
-        </select>
-
+    <div>
+      <div className="flex justify-center">
         <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white px-4 py-1 rounded"
+          onClick={handleSubmit}
+          disabled={loading || !address}
+          className="bg-blue-600 text-white px-4 py-1 rounded mb-4"
+          style={{ marginTop: '1em' }}
         >
-          {loading ? 'Generating…' : 'Generate'}
+          {loading ? 'Loading…' : 'Create erc7730'}
         </button>
-
-        <button
-          type="button"
-          className="bg-gray-300 text-black px-4 py-1 rounded"
-          onClick={() =>
-            setAddress('0x111111111117dC0aa78b770fA6A738034120C302')
-          }
-        >
-          Autofill 1inch
-        </button>
-      </form>
+      </div>
 
       {json && (
-        <>
-          <pre className="w-full max-w-3xl bg-gray-100 p-4 rounded text-sm overflow-x-auto">
-            {JSON.stringify(json, null, 2)}
-          </pre>
-
-          <button
-            className="mt-4 bg-green-600 text-white px-4 py-1 rounded"
-            onClick={download}
-          >
-            Download JSON
-          </button>
-        </>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70"
+        style={{
+        minHeight: '100vh',
+        minWidth: '100vw',
+        overflow: 'auto',
+        scrollbarWidth: 'none',
+        }}
+      >
+        <style jsx>{`
+        div::-webkit-scrollbar {
+          display: none;
+        }
+        `}</style>
+        <div
+        className="relative bg-white rounded shadow-lg p-6 max-w-3xl w-full flex flex-col"
+        style={{
+          // paddingTop: '1em',
+          color: '#222',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+        }}
+        >
+        <button
+          className="absolute top-2 right-2 text-gray-500 hover:text-black text-xl"
+          onClick={() => setJson(null)}
+          aria-label="Close"
+        >
+          &times;
+        </button>
+        <pre className="w-full bg-gray-100 p-4 rounded text-sm overflow-x-auto">
+          {JSON.stringify(json, null, 2)}
+        </pre>
+        <button
+          className="mt-4 bg-green-600 text-white px-4 py-1 rounded"
+          onClick={download}
+        >
+          Download JSON
+        </button>
+        </div>
+      </div>
       )}
-    </main>
+    </div>
   );
 }
