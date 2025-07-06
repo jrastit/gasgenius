@@ -11,11 +11,22 @@ from model_utils import (
     train_models, MultivariateLSTM, device
 )
 from datetime import datetime, timedelta
+from fastapi.middleware.cors import CORSMiddleware
 
 import pickle
 import threading
 
+threads = []
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # <== Toutes les origines autorisées
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 MODEL_DIR = "saved_models"
 
@@ -110,87 +121,85 @@ def predict_next_gas_fee():
 
 @app.get("/predict/now")
 def predict_until_now():
-    # 1. Charger les données et features
+    model_path = sorted(glob.glob(f"{MODEL_DIR}/multivariate/multivariate_lstm_*.pt"))
+    if not model_path:
+        raise HTTPException(status_code=404, detail="Modèle multivarié non trouvé.")
+    
+    model_file = model_path[-1]
+    scaler_x_path = "saved_models/multivariate/scaler_x.pkl"
+    scaler_y_path = "saved_models/multivariate/scaler_y.pkl"
+
+    model, scaler_x, scaler_y = load_model_and_scalers(model_file, scaler_x_path, scaler_y_path)
+
     df = load_data()
-    df = add_time_features(df)
+    df = df.sort_values("timestamp").reset_index(drop=True)
 
     feature_cols = ['low_gas_price', 'medium_gas_price', 'high_gas_price',
                     'hour', 'minute', 'dayofweek', 'day', 'month', 'year']
-    targets = ['low_gas_price', 'medium_gas_price', 'high_gas_price']
     window = 10
 
-    # 2. Charger les scalers
-    with open(f"{MODEL_DIR}/multivariate/scaler_x.pkl", "rb") as f:
-        scaler_x = pickle.load(f)
-    with open(f"{MODEL_DIR}/multivariate/scaler_y.pkl", "rb") as f:
-        scaler_y = pickle.load(f)
+    df = add_time_features(df)
 
-    # 3. Charger le modèle
-    latest_model_path = sorted(glob.glob(f"{MODEL_DIR}/multivariate/multivariate_lstm_*.pt"))[-1]
-    model = MultivariateLSTM(input_size=len(feature_cols), hidden_size=300).to(device)
-    model.load_state_dict(torch.load(latest_model_path, map_location=device))
-    model.eval()
+    features = df[feature_cols].values
+    input_seq = features[-window:]
 
-    # 4. Boucle jusqu'à now
+    input_seq_scaled = scaler_x.transform(input_seq)
+    current_seq = torch.tensor(input_seq_scaled, dtype=torch.float32).unsqueeze(0).to(device)
+
+    # last_timestamp = df['timestamp'].iloc[-1]
+
     current_time = datetime.utcnow()
-    timestamp_model = latest_model_path.split("_")[-2]+"_"+latest_model_path.split("_")[-1].split(".pt")[0]
+    timestamp_model = model_file.split("_")[-2]+"_"+model_file.split("_")[-1].split(".pt")[0]
     last_timestamp = datetime.strptime(timestamp_model, "%Y%m%d_%H%M%S")# pd.to_datetime(df['timestamp'].iloc[-1])
     print("Last time train: ", last_timestamp)
+    n_steps = int((current_time-last_timestamp).total_seconds()//60)
+    print(n_steps)
+    if n_steps >= 10:
+        threads = [t for t in threads if t.is_alive()]
+        if len(threads)==0:
+            print("Retrain a new model more update to date")
+            t=threading.Thread(target=retrain_models).start()
+            threads.append(t)
 
-    df = df.copy()
-    t=None
-    if (current_time-last_timestamp).total_seconds()//60 >= 10:
-        print("Retrain a new model more update to date")
-        t=threading.Thread(target=retrain_models).start()
+    preds = []
 
-    c=0
-    while last_timestamp < current_time:
-        # Générer X_seq
-        X_seq, _ = create_features_multivariate_full(df, feature_cols, targets, window)
-        X_input = X_seq[-1:]
-        X_input_scaled = scaler_x.transform(X_input.reshape(-1, X_input.shape[2])).reshape(X_input.shape)
-
-        X_input_t = torch.tensor(X_input_scaled, dtype=torch.float32).to(device)
-
+    for step in range(1, n_steps + 1):
         with torch.no_grad():
-            pred_scaled = model(X_input_t).cpu().numpy()
+            output_scaled = model(current_seq)
+        
+        output_scaled_np = output_scaled.cpu().numpy()
+        output_np = scaler_y.inverse_transform(output_scaled_np).reshape(-1)
 
-        pred = scaler_y.inverse_transform(pred_scaled)[0]
+        pred_gas = output_np[:3]
+        preds.append(pred_gas.tolist()+[last_timestamp+timedelta(minutes=step-1)])
 
-        # Générer un faux bloc prédictif à t+1 minute
-        last_timestamp += timedelta(minutes=1)
+        next_time = last_timestamp + timedelta(minutes=step)
+        next_features = np.array([
+            pred_gas[0],
+            pred_gas[1],
+            pred_gas[2],
+            next_time.hour,
+            next_time.minute,
+            next_time.weekday(),
+            next_time.day,
+            next_time.month,
+            next_time.year,
+        ]).reshape(1, 9)
 
-        new_row = {
-            'timestamp': last_timestamp,
-            'low_gas_price': pred[0],
-            'medium_gas_price': pred[1],
-            'high_gas_price': pred[2],
-        }
+        next_features_scaled = scaler_x.transform(next_features).reshape(1, 1, 9)
+        next_features_tensor = torch.tensor(next_features_scaled, dtype=torch.float32).to(device)
 
-        # Ajouter les time features
-        time_parts = pd.to_datetime([last_timestamp])
-        new_row.update({
-            'hour': time_parts.hour[0],
-            'minute': time_parts.minute[0],
-            'dayofweek': time_parts.dayofweek[0],
-            'day': time_parts.day[0],
-            'month': time_parts.month[0],
-            'year': time_parts.year[0],
-        })
+        current_seq = torch.cat([current_seq[:, 1:, :], next_features_tensor], dim=1)
 
-        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-        c+=1
-
-    print(f"Needed {c} step to predict current gas fee")
-    if t is not None:
-        t.join()
+    print(f"Needed {n_steps} step to predict current gas fee")
+    
     # Renvoyer la dernière prédiction
     return {
         "predicted_gas_fee_at_now": {
-            "timestamp": str(last_timestamp),
-            "low": round(float(pred[0]), 2),
-            "medium": round(float(pred[1]), 2),
-            "high": round(float(pred[2]), 2),
+            "timestamp": str(next_time),
+            "low": round(float(preds[-1][0]), 2),
+            "medium": round(float(preds[-1][1]), 2),
+            "high": round(float(preds[-1][2]), 2),
         }
     }
 
