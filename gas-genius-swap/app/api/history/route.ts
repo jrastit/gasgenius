@@ -2,11 +2,19 @@ import { NextResponse } from 'next/server';
 import { getErc7730Registry } from '@/app/api/history/erc7730Registry';
 import { getErc7730Info } from './erc7730Parse';
 
-const ERC7730_REGISTRY = await getErc7730Registry();
+
 
 export async function POST(req: Request) {
   try {
-    const { address, chainId = 1 } = await req.json();
+    const ERC7730_REGISTRY = await getErc7730Registry();
+    let body;
+try {
+  body = await req.json();
+} catch (e) {
+  return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+}
+const { address, chainId = 1 } = body;
+
 
     if (!address) {
       return NextResponse.json({ error: 'Missing address' }, { status: 400 });
