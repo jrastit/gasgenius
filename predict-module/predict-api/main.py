@@ -121,6 +121,7 @@ def predict_next_gas_fee():
 
 @app.get("/predict/now")
 def predict_until_now():
+    global threads
     model_path = sorted(glob.glob(f"{MODEL_DIR}/multivariate/multivariate_lstm_*.pt"))
     if not model_path:
         raise HTTPException(status_code=404, detail="Modèle multivarié non trouvé.")
@@ -154,7 +155,7 @@ def predict_until_now():
     print("Last time train: ", last_timestamp)
     n_steps = int((current_time-last_timestamp).total_seconds()//60)
     if n_steps >= 10:
-        threads = [t for t in threads if t.is_alive()]
+        threads = [t for t in threads if t and t.is_alive()]
         if len(threads)==0:
             print("Retrain a new model more update to date")
             t=threading.Thread(target=retrain_models).start()
