@@ -3,7 +3,6 @@ import { buildErc7730Json } from '@/app/lib/erc7730';
 import axios from 'axios';
 import { NextResponse } from 'next/server';
 
-
 export async function POST(req: Request) {
   // 1️⃣ Parse body
   const { address, chainId = 1 } = await req.json();

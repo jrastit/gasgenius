@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getErc7730Registry } from '@/app/api/history/erc7730Registry';
-import { Interface } from 'ethers';
 import { getErc7730Info } from './erc7730Parse';
 
 const ERC7730_REGISTRY = await getErc7730Registry();
-
-const abiCache: Record<string, any> = {};
 
 export async function POST(req: Request) {
   try {
