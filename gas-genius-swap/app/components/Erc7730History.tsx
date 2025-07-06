@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Interface } from 'ethers';
+import Erc7730Generator from './Erc7730Generator';
 
 interface Transaction {
     hash: string;
@@ -165,6 +166,9 @@ export const Erc7730History: React.FC<Erc7730HistoryProps> = ({
                                 </pre>
                                 
                             </div>
+                        )}
+                        {decodeEnabled && !decoded[tx.hash]?.decoded && (
+                            <Erc7730Generator address={tx.to}></Erc7730Generator>
                         )}
                     </li>
                 ))}

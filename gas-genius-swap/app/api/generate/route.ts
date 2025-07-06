@@ -1,7 +1,8 @@
 // src/app/api/generate/route.ts
+import { buildErc7730Json } from '@/app/lib/erc7730';
 import axios from 'axios';
 import { NextResponse } from 'next/server';
-import { buildErc7730Json } from '@/lib/erc7730';
+
 
 export async function POST(req: Request) {
   // 1️⃣ Parse body

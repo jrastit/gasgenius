@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev --turbopack --port 3030",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "start": "PORT=3040 next start",
+    "lint": "next lint",
+    "pm2": "pm2 start npm --name gas-genius-swap -- run start"
   },
   "dependencies": {
     "@web3-react/core": "^8.2.3",

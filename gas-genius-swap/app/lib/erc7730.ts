@@ -36,23 +36,27 @@ export function buildErc7730Json({
     .forEach((fn: Fragment) => {
       if (fn.type !== 'function') return
 
-      const signature = iface.getFunction(`${fn.name}`).format()
+      const fn2 : any = { ...fn }
+      
+      const signature = iface?.getFunction(`${fn2.name}`)?.format()
       const inputs = (fn.inputs || []).map((input, idx) => ({
         path: input.name || `arg${idx}`,
         label: prettyLabel(input.name || `Arg ${idx + 1}`),
         format: mapFormat(input.type),
       }))
 
-      formats[signature] = {
-        intent:
-          fn.name.toLowerCase() === 'transfer'
-            ? 'Send'
-            : fn.name.toLowerCase() === 'approve'
-            ? 'Approve'
-            : 'Call',
-        fields: inputs,
-        required: inputs.map((i) => i.path),
-        excluded: [],
+      if (signature) {
+        formats[signature] = {
+          intent:
+            fn2.name.toLowerCase() === 'transfer'
+              ? 'Send'
+              : fn2.name.toLowerCase() === 'approve'
+              ? 'Approve'
+              : 'Call',
+          fields: inputs,
+          required: inputs.map((i) => i.path),
+          excluded: [],
+        }
       }
     })
 
