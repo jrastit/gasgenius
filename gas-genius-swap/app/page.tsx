@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { parseUnits, formatUnits, ethers } from 'ethers';
 import { useDebounce } from '../hooks/useDebounce';
-import { getQuote, getTokenBalance } from '../utils/oneInchApi';
 import AddressHistory from './components/AddressHistory';
 import { getQuote, getTokenBalance ,getSwapTx} from '../utils/oneInchApi';
 import { erc20Abi } from '../utils/erc20Abi';
