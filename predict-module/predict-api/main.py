@@ -155,6 +155,6 @@ def predict_next_n_steps(n_steps: int = Query(1, ge=1, le=60), key:str=Query("lo
             "timestamp": p[3]
         })
     
-    top_k = sorted([prices for prices in results], key=lambda e: e[key_priority])[:5]
+    top_k = sorted([{"step":prices["step"], key_priority:prices[key_priority], "timestamp":prices["timestamp"]} for prices in results], key=lambda e: e[key_priority])[:5]
 
     return {"predictions": top_k}
