@@ -19,18 +19,18 @@ export async function getErc7730Registry(): Promise<Record<string, any>> {
   const registry: Record<string, any> = {};
   const dirs = await fs.readdir(REGISTRY_DIR, { withFileTypes: true });
   for (const dirent of dirs) {
-    console.log(`Processing directory: ${dirent.name}`);
+    //console.log(`Processing directory: ${dirent.name}`);
     if (!dirent.isDirectory()) continue;
     const subdir = path.join(REGISTRY_DIR, dirent.name);
     const files = await fs.readdir(subdir);
     for (const file of files) {
-      console.log(`Processing file: ${file}`);
+      //console.log(`Processing file: ${file}`);
       if (!file.endsWith('.json')) continue;
       const filePath = path.join(subdir, file);
       try {
         const data = JSON.parse(await fs.readFile(filePath, 'utf8'));
         
-        const deployments = data.context.contract?.deployments || data.context.eip712?.deployments
+        const deployments = data.context?.contract?.deployments || data.context?.eip712?.deployments
         if (!deployments) {
           console.warn(`No deployments found in file: ${filePath}`);
           continue;
@@ -38,7 +38,7 @@ export async function getErc7730Registry(): Promise<Record<string, any>> {
         for (const deployment of deployments) {
           const address = deployment.address;
           const chainId = deployment.chainId;
-          console.log(address, chainId);
+          //console.log(address, chainId);
           if (address && chainId) {
             registry[address.toLowerCase()] = data;
           } else {

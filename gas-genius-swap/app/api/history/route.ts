@@ -15,10 +15,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing address' }, { status: 400 });
     }
 
+    console.log('Fetching history for address:', address, 'on chainId:', chainId);
+
     if (address === '0x0') {
       const erc7730 = ERC7730_REGISTRY[('0x45312ea0eFf7E09C83CBE249fa1d7598c4C8cd4e').toLowerCase()] ?? null;
       if (!erc7730) {
-        //console.log('ERC7730_REGISTRY entries:', Object.entries(ERC7730_REGISTRY));
+        console.log('ERC7730_REGISTRY entries:', Object.entries(ERC7730_REGISTRY));
         return NextResponse.json({ error: 'No ERC-7730 info found for address' }, { status: 404 });
       }
       // Return a mock transaction for the zero address
@@ -66,32 +68,7 @@ export async function POST(req: Request) {
 
     const enriched = [];
     for (const tx of data.result) {
-      const erc7730 =
-        ERC7730_REGISTRY[(tx.to ?? '').toLowerCase()] ??
-        null;
-      console.log('Found ERC-7730 info:', erc7730);
-      if (!erc7730) {
-        try {
-          const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
-          const contractAddress = (tx.to ?? tx.from ?? '').toLowerCase();
-
-          let abiData = abiCache[contractAddress];
-          if (!abiData) {
-            console.log('Fetched ABI for contract:', contractAddress);
-            const abiUrl = `https://api.etherscan.io/api?module=contract&action=getabi&address=${contractAddress}&apikey=${ETHERSCAN_API_KEY}`;
-            while (lastCall && Date.now() - lastCall < 2000) {
-              // Wait until 2 seconds have passed since the last call
-              await delay(2000 - (Date.now() - lastCall));
-            }
-            lastCall = Date.now(); // Update last call time
-            const abiRes = await fetch(abiUrl);
-            abiData = await abiRes.json();
-            abiCache[contractAddress] = abiData;
-          }
-          if (abiData.status === '1') {
-
-            const abi = JSON.parse(abiData.result);
-            enriched.push({
+      enriched.push({
               hash: tx.hash,
               from: tx.from,
               to: tx.to,
@@ -99,69 +76,104 @@ export async function POST(req: Request) {
               data: tx.input,
               blockNumber: Number(tx.blockNumber),
               timestamp: Number(tx.timeStamp) * 1000,
-              erc7730: {
-                abi,
-                formatData: (data: string) => {
-                  try {
-                    const iface = new Interface(abi);
-                    return iface.parseTransaction({ data });
-                  } catch (err) {
-                    console.error('Failed to decode data with ABI:', err);
-                    return {};
-                  }
-                },
-              },
+              ... await getErc7730Info(tx.input, ERC7730_REGISTRY[(tx.to ?? '').toLowerCase()] ?? null), 
             });
-          } else {
-            console.warn('Failed to fetch ABI for contract:', contractAddress, 'Error:', abiData.result);
-            abiCache[contractAddress] = {};
-            enriched.push({
-              hash: tx.hash,
-              from: tx.from,
-              to: tx.to,
-              value: tx.value,
-              data: tx.input,
-              blockNumber: Number(tx.blockNumber),
-              timestamp: Number(tx.timeStamp) * 1000,
-              erc7730: {
-                abi: [],
-                formatData: (data: string) => {
-                  console.warn('No ABI available for contract:', contractAddress);
-                  return {};
-                },
-              }
-            });
-          }
-        } catch (e) {
-          console.error('Failed to fetch ABI from Etherscan:', e);
-          enriched.push({
-            hash: tx.hash,
-            from: tx.from,
-            to: tx.to,
-            value: tx.value,
-            data: tx.input,
-            blockNumber: Number(tx.blockNumber),
-            timestamp: Number(tx.timeStamp) * 1000,
-            erc7730: null,
-          });
-        }
-        // Add delay to avoid rate limit (Etherscan free tier: 2 req/sec)
-        await delay(600);
-      } else {
-        enriched.push({
-          hash: tx.hash,
-          from: tx.from,
-          to: tx.to,
-          value: tx.value,
-          data: tx.input,
-          blockNumber: Number(tx.blockNumber),
-          timestamp: Number(tx.timeStamp) * 1000,
-          erc7730,
-        });
-      }
+      // const erc7730 =
+      //   ERC7730_REGISTRY[(tx.to ?? '').toLowerCase()] ??
+      //   null;
+      // console.log('Found ERC-7730 info:', erc7730);
+      // if (!erc7730) {
+      //   try {
+      //     const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
+      //     const contractAddress = (tx.to ?? tx.from ?? '').toLowerCase();
+
+      //     let abiData = abiCache[contractAddress];
+      //     if (!abiData) {
+      //       console.log('Fetched ABI for contract:', contractAddress);
+      //       const abiUrl = `https://api.etherscan.io/api?module=contract&action=getabi&address=${contractAddress}&apikey=${ETHERSCAN_API_KEY}`;
+      //       while (lastCall && Date.now() - lastCall < 2000) {
+      //         // Wait until 2 seconds have passed since the last call
+      //         await delay(2000 - (Date.now() - lastCall));
+      //       }
+      //       lastCall = Date.now(); // Update last call time
+      //       const abiRes = await fetch(abiUrl);
+      //       abiData = await abiRes.json();
+      //       abiCache[contractAddress] = abiData;
+      //     }
+      //     if (abiData.status === '1') {
+
+      //       const abi = JSON.parse(abiData.result);
+      //       enriched.push({
+      //         hash: tx.hash,
+      //         from: tx.from,
+      //         to: tx.to,
+      //         value: tx.value,
+      //         data: tx.input,
+      //         blockNumber: Number(tx.blockNumber),
+      //         timestamp: Number(tx.timeStamp) * 1000,
+      //         erc7730: {
+      //           abi,
+      //           formatData: (data: string) => {
+      //             try {
+      //               const iface = new Interface(abi);
+      //               return iface.parseTransaction({ data });
+      //             } catch (err) {
+      //               console.error('Failed to decode data with ABI:', err);
+      //               return {};
+      //             }
+      //           },
+      //         },
+      //       });
+      //     } else {
+      //       console.warn('Failed to fetch ABI for contract:', contractAddress, 'Error:', abiData.result);
+      //       abiCache[contractAddress] = {};
+      //       enriched.push({
+      //         hash: tx.hash,
+      //         from: tx.from,
+      //         to: tx.to,
+      //         value: tx.value,
+      //         data: tx.input,
+      //         blockNumber: Number(tx.blockNumber),
+      //         timestamp: Number(tx.timeStamp) * 1000,
+      //         erc7730: {
+      //           abi: [],
+      //           formatData: (data: string) => {
+      //             console.warn('No ABI available for contract:', contractAddress);
+      //             return {};
+      //           },
+      //         }
+      //       });
+      //     }
+      //   } catch (e) {
+      //     console.error('Failed to fetch ABI from Etherscan:', e);
+      //     enriched.push({
+      //       hash: tx.hash,
+      //       from: tx.from,
+      //       to: tx.to,
+      //       value: tx.value,
+      //       data: tx.input,
+      //       blockNumber: Number(tx.blockNumber),
+      //       timestamp: Number(tx.timeStamp) * 1000,
+      //       erc7730: null,
+      //     });
+      //   }
+      //   // Add delay to avoid rate limit (Etherscan free tier: 2 req/sec)
+      //   await delay(600);
+      // } else {
+      //   enriched.push({
+      //     hash: tx.hash,
+      //     from: tx.from,
+      //     to: tx.to,
+      //     value: tx.value,
+      //     data: tx.input,
+      //     blockNumber: Number(tx.blockNumber),
+      //     timestamp: Number(tx.timeStamp) * 1000,
+      //     erc7730,
+      //   });
+      // }
     }
 
-    //console.log('Enriched transactions:', enriched);
+    // console.log('Enriched transactions:', enriched);
 
     return NextResponse.json(enriched);
   } catch (err) {

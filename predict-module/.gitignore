@@ -1,2 +1,2 @@
 .env
-predict-api/saved_models/
+# predict-api/saved_models/
