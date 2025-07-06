@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     if (address === '0x0') {
       const erc7730 = ERC7730_REGISTRY[('0x45312ea0eFf7E09C83CBE249fa1d7598c4C8cd4e').toLowerCase()] ?? null;
       if (!erc7730) {
-        console.log('ERC7730_REGISTRY entries:', Object.entries(ERC7730_REGISTRY));
+        //console.log('ERC7730_REGISTRY entries:', Object.entries(ERC7730_REGISTRY));
         return NextResponse.json({ error: 'No ERC-7730 info found for address' }, { status: 404 });
       }
       // Return a mock transaction for the zero address
@@ -161,7 +161,7 @@ export async function POST(req: Request) {
       }
     }
 
-    console.log('Enriched transactions:', enriched);
+    //console.log('Enriched transactions:', enriched);
 
     return NextResponse.json(enriched);
   } catch (err) {

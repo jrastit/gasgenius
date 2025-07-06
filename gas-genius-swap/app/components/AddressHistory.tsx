@@ -13,7 +13,7 @@ interface Erc7730Info {
 interface TxRecord {
   hash: string;
   from: string;
-  to: string | null;
+  to: string;
   data: string;
   value: string;
   blockNumber: number;
@@ -98,9 +98,6 @@ export default function AddressHistory({ address: address = '' }: { address?: st
         <Erc7730History
           transactions={txs.map((tx) => ({
             ...tx,
-            data: tx.data,
-            to: tx.to ?? '',
-            erc7730: tx.erc7730 || null,
           }))}
         />
           </div>

@@ -8,6 +8,7 @@ interface Transaction {
     value: string;
     data: string;
     blockNumber?: number;
+    timestamp?: number;
     [key: string]: any;
     erc7730?: any;
 }
@@ -59,6 +60,18 @@ export const Erc7730History: React.FC<Erc7730HistoryProps> = ({
                             padding: 20,
                         }}
                     >
+                        {tx.timestamp && (
+                            <div style={{ color: '#bdbdbd', fontSize: 13, marginBottom: 8 }}>
+                                {new Date(tx.timestamp).toLocaleString(undefined, {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                })}
+                            </div>
+                        )}
                         <div>
                             <strong >Tx:</strong> <a
                                 href={`https://etherscan.io/tx/${tx.hash}`}

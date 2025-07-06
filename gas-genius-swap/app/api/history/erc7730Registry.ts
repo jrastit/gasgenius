@@ -30,7 +30,7 @@ export async function getErc7730Registry(): Promise<Record<string, any>> {
       try {
         const data = JSON.parse(await fs.readFile(filePath, 'utf8'));
         
-        const deployments = data.context.contract?.deployments || data.context.eip712?.deployments
+        const deployments = data.context?.contract?.deployments || data.context?.eip712?.deployments
         if (!deployments) {
           console.warn(`No deployments found in file: ${filePath}`);
           continue;

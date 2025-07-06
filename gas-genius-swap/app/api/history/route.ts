@@ -173,7 +173,7 @@ export async function POST(req: Request) {
       // }
     }
 
-    console.log('Enriched transactions:', enriched);
+    // console.log('Enriched transactions:', enriched);
 
     return NextResponse.json(enriched);
   } catch (err) {
